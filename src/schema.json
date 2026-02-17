@@ -1,0 +1,197 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://your-company.ru/schemas/sber-gateway-config-v1.json",
+  "title": "Sber Gateway Sidecar Configuration",
+  "description": "Конфигурация sidecar'ов и мониторинга для шлюза Citrix / API Gateway (Sber internal)",
+  "type": "object",
+  "properties": {
+    "cn": {
+      "type": "object",
+      "description": "Настройки фильтрации входящих соединений по CN сертификата клиента",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "default": false,
+          "description": "Включён ли фильтр по CN сертификата клиента"
+        },
+        "whitelist": {
+          "type": "boolean",
+          "default": false,
+          "description": "true = пропускать только из списка, false = блокировать только из списка"
+        },
+        "whitelist_list": {
+          "type": "array",
+          "title": "whitelist",
+          "description": "Список разрешённых CN сертификатов (или их частей)",
+          "items": {
+            "type": "string",
+            "pattern": "^[A-Z0-9]{10,}-(CLIENT|SERVER-CLIENT)$",
+            "description": "Ожидаемый формат: CIxxxxxxxxxx-CLIENT или CIxxxxxxxxxx-SERVER-CLIENT"
+          },
+          "minItems": 0,
+          "uniqueItems": true
+        }
+      },
+      "required": ["enabled", "whitelist"],
+      "additionalProperties": false
+    },
+
+    "dynatrace": {
+      "type": "object",
+      "description": "Настройки интеграции с Dynatrace (OneAgent / ActiveGate sidecar)",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "default": false,
+          "description": "Включать ли Dynatrace sidecar в под"
+        },
+        "reflex-host": {
+          "type": "string",
+          "format": "hostname",
+          "description": "Хостнейм или адрес reflex-сервера Dynatrace",
+          "examples": ["reflex.sberift.ru", "reflex.delta.sbrf.ru"]
+        },
+        "cluster_name": {
+          "type": "string",
+          "minLength": 8,
+          "maxLength": 64,
+          "description": "Имя кластера в Dynatrace (обычно совпадает с Openshift проектом)"
+        },
+        "env_name": {
+          "type": "string",
+          "enum": ["sberift", "delta", "ift", "prod", "test", "dev"],
+          "description": "Код среды (окружения)"
+        },
+        "reflex_labels": {
+          "type": "string",
+          "description": "Дополнительные лейблы, передаваемые в Dynatrace (строка)"
+        }
+      },
+      "required": ["enabled"],
+      "if": {
+        "properties": { "enabled": { "const": true } }
+      },
+      "then": {
+        "required": ["reflex-host", "cluster_name", "env_name"]
+      }
+    },
+
+    "fluentbit": {
+      "type": "object",
+      "description": "Настройки Fluent Bit sidecar для отправки логов в Kafka",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Включён ли fluent-bit sidecar"
+        },
+        "kafka-brokers": {
+          "type": "array",
+          "description": "Список kafka-брокеров (host:port)",
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z0-9.-]+\\.[a-z0-9.-]+\\.[a-z]+:[0-9]{4,5}$"
+          },
+          "minItems": 1
+        },
+        "cpu": {
+          "type": "object",
+          "properties": {
+            "limits": {
+              "type": "string",
+              "pattern": "^[0-9]+m$",
+              "description": "Лимит CPU в milliCPU"
+            }
+          }
+        },
+        "memory": {
+          "type": "object",
+          "properties": {
+            "limits": {
+              "type": "string",
+              "pattern": "^[0-9]+(Mi|Gi)$",
+              "description": "Лимит памяти (Mi или Gi)"
+            }
+          }
+        },
+        "liveness-probe": {
+          "type": "object",
+          "properties": {
+            "initial_delay_seconds": {
+              "type": "integer",
+              "minimum": 10,
+              "maximum": 300,
+              "description": "Задержка перед первой проверкой liveness"
+            }
+          }
+        },
+        "readiness-probe": {
+          "type": "object",
+          "properties": {
+            "initial_delay_seconds": {
+              "type": "integer",
+              "minimum": 10,
+              "maximum": 300
+            }
+          }
+        },
+        "topic": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 128,
+          "description": "Имя топика в Kafka для отправки логов"
+        }
+      },
+      "required": ["enabled"]
+    },
+
+    "ott": {
+      "type": "object",
+      "description": "Настройки OTT sidecar (One-time token / short-lived token service)",
+      "properties": {
+        "params": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "description": "Включён ли OTT sidecar"
+            },
+            "cpu": {
+              "type": "object",
+              "properties": {
+                "limits": {
+                  "type": "string",
+                  "pattern": "^[0-9]+m$"
+                }
+              }
+            },
+            "memory": {
+              "type": "object",
+              "properties": {
+                "limits": {
+                  "type": "string",
+                  "pattern": "^[0-9]+Mi$"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+
+    "rate-limits": {
+      "type": "object",
+      "description": "Настройки ограничения скорости запросов (rate limiting)",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "default": false,
+          "description": "Включён ли модуль rate limiting"
+        }
+      }
+    }
+  },
+
+  "additionalProperties": true,
+  "required": []
+}
