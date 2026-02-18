@@ -3,11 +3,13 @@
   "$id": "https://your-company.ru/schemas/sber-gateway-config-v1.json",
   "title": "Sber Gateway Sidecar Configuration",
   "description": "Конфигурация sidecar'ов и мониторинга для шлюза Citrix / API Gateway (Sber internal)",
+  "markdownDescription": "Конфигурация sidecar'ов и мониторинга для шлюза **Citrix / API Gateway** (Sber internal)\n\n### Пример полного конфига:\n\n```yaml\ncn:\n  enabled: true\n  whitelist: true\n  whitelist_list:\n    - CI1234567890-CLIENT\n\ndynatrace:\n  enabled: true\n  reflex-host: reflex.sberift.ru\n  cluster_name: my-openshift-project\n  env_name: prod\n\nfluentbit:\n  enabled: true\n  kafka-brokers:\n    - broker1.kafka.sberift.ru:9092\n  topic: gateway-access-logs\n  cpu:\n    limits: 200m\n  memory:\n    limits: 256Mi\n\nott:\n  params:\n    enabled: true\n    cpu:\n      limits: 100m\n    memory:\n      limits: 128Mi\n\nrate-limits:\n  enabled: false\n```\n\n> Блоки с `enabled: false` будут скрыты в редакторе и отображены в боковой панели.",
   "type": "object",
   "properties": {
     "cn": {
       "type": "object",
       "description": "Настройки фильтрации входящих соединений по CN сертификата клиента",
+      "markdownDescription": "Настройки фильтрации входящих соединений по **CN сертификата** клиента\n\n### Пример:\n\n```yaml\ncn:\n  enabled: true\n  whitelist: true\n  whitelist_list:\n    - CI1234567890-CLIENT\n    - CI0987654321-SERVER-CLIENT\n```\n\n> При `whitelist: true` пропускаются **только** CN из списка. При `false` — блокируются только указанные.",
       "properties": {
         "enabled": {
           "type": "boolean",
@@ -39,6 +41,7 @@
     "dynatrace": {
       "type": "object",
       "description": "Настройки интеграции с Dynatrace (OneAgent / ActiveGate sidecar)",
+      "markdownDescription": "Настройки интеграции с **Dynatrace** (OneAgent / ActiveGate sidecar)\n\n### Пример:\n\n```yaml\ndynatrace:\n  enabled: true\n  reflex-host: reflex.sberift.ru\n  cluster_name: my-openshift-project\n  env_name: prod\n  reflex_labels: team=gateway,service=api\n```\n\n> При `enabled: true` обязательны поля: `reflex-host`, `cluster_name`, `env_name`.",
       "properties": {
         "enabled": {
           "type": "boolean",
@@ -79,6 +82,7 @@
     "fluentbit": {
       "type": "object",
       "description": "Настройки Fluent Bit sidecar для отправки логов в Kafka",
+      "markdownDescription": "Настройки **Fluent Bit** sidecar для отправки логов в **Kafka**\n\n### Пример:\n\n```yaml\nfluentbit:\n  enabled: true\n  kafka-brokers:\n    - broker1.kafka.sberift.ru:9092\n    - broker2.kafka.sberift.ru:9092\n  topic: gateway-access-logs\n  cpu:\n    limits: 200m\n  memory:\n    limits: 256Mi\n  liveness-probe:\n    initial_delay_seconds: 30\n  readiness-probe:\n    initial_delay_seconds: 15\n```",
       "properties": {
         "enabled": {
           "type": "boolean",
@@ -148,6 +152,7 @@
     "ott": {
       "type": "object",
       "description": "Настройки OTT sidecar (One-time token / short-lived token service)",
+      "markdownDescription": "Настройки **OTT** sidecar (One-time token / short-lived token service)\n\n### Пример:\n\n```yaml\nott:\n  params:\n    enabled: true\n    cpu:\n      limits: 100m\n    memory:\n      limits: 128Mi\n```",
       "properties": {
         "params": {
           "type": "object",
@@ -182,6 +187,7 @@
     "rate-limits": {
       "type": "object",
       "description": "Настройки ограничения скорости запросов (rate limiting)",
+      "markdownDescription": "Настройки ограничения скорости запросов (**rate limiting**)\n\n### Пример:\n\n```yaml\nrate-limits:\n  enabled: true\n```",
       "properties": {
         "enabled": {
           "type": "boolean",

@@ -8,19 +8,37 @@ import {
   isScalar,
   visit,
 } from "yaml";
-import { monaco } from "./monaco-setup";
-import { parseAndFilterYaml, extractAllBlocks } from "./yaml-utils";
-import type { DisabledBlock, YamlEditorResult } from "./types";
+import { monaco } from "../editor-setup/monaco-setup";
+import {
+  parseAndFilterYaml,
+  extractAllBlocks,
+  buildFullYaml,
+  setEnabledInBlock,
+} from "../utils/yaml-utils";
+import type { DisabledBlock, EditorProblem, YamlEditorResult } from "../types";
 
 const MODEL_URI = "file:///config.yaml";
 
-export function useYamlEditor(initialYaml: string): YamlEditorResult {
+const SEVERITY_MAP: Record<number, EditorProblem["severity"]> = {
+  [monaco.MarkerSeverity.Error]: "error",
+  [monaco.MarkerSeverity.Warning]: "warning",
+  [monaco.MarkerSeverity.Info]: "info",
+  [monaco.MarkerSeverity.Hint]: "info",
+};
+
+export function useYamlEditor(initialYaml: string, theme: "dark" | "light" = "dark"): YamlEditorResult {
   const containerRef = useRef<HTMLDivElement>(null);
   const editorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null);
   const isUpdatingRef = useRef(false);
   const originalBlocksRef = useRef<Map<string, string>>(new Map());
   const [errorCount, setErrorCount] = useState(0);
+  const [problems, setProblems] = useState<EditorProblem[]>([]);
   const [disabledBlocks, setDisabledBlocks] = useState<DisabledBlock[]>([]);
+  const disabledBlocksRef = useRef<DisabledBlock[]>([]);
+
+  useEffect(() => {
+    disabledBlocksRef.current = disabledBlocks;
+  }, [disabledBlocks]);
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -36,9 +54,11 @@ export function useYamlEditor(initialYaml: string): YamlEditorResult {
     const model =
       existingModel ?? monaco.editor.createModel(filteredYaml, "yaml", uri);
 
+    const monacoTheme = theme === "dark" ? "vs-dark" : "vs";
+
     const editor = monaco.editor.create(containerRef.current, {
       model,
-      theme: "vs-dark",
+      theme: monacoTheme,
       fontSize: 15,
       minimap: { enabled: false },
       scrollBeyondLastLine: false,
@@ -59,6 +79,10 @@ export function useYamlEditor(initialYaml: string): YamlEditorResult {
     });
 
     editorRef.current = editor;
+
+    setTimeout(() => {
+      editor.getAction("editor.foldLevel1")?.run();
+    }, 100);
 
     let debounceTimer: ReturnType<typeof setTimeout>;
 
@@ -108,7 +132,7 @@ export function useYamlEditor(initialYaml: string): YamlEditorResult {
             if (!currentKeys.has(origKey) && !knownNames.has(origKey)) {
               next.push({
                 name: origKey,
-                fullText: origText,
+                fullText: setEnabledInBlock(origText, false),
                 reason: "deleted",
               });
             }
@@ -119,10 +143,33 @@ export function useYamlEditor(initialYaml: string): YamlEditorResult {
       }, 500);
     });
 
+    const errorDecorations = editor.createDecorationsCollection([]);
+
     const markerDisposable = monaco.editor.onDidChangeMarkers(([resource]) => {
       if (resource.toString() === model.uri.toString()) {
         const markers = monaco.editor.getModelMarkers({ resource });
         setErrorCount(markers.length);
+
+        setProblems(
+          markers.map((m) => ({
+            source: "validation" as const,
+            severity: SEVERITY_MAP[m.severity] ?? "info",
+            message: m.message,
+            startLineNumber: m.startLineNumber,
+            startColumn: m.startColumn,
+          })),
+        );
+
+        errorDecorations.set(
+          markers.map((m) => ({
+            range: new monaco.Range(m.startLineNumber, 1, m.startLineNumber, 1),
+            options: {
+              isWholeLine: true,
+              className: "error-line-highlight",
+              marginClassName: "error-line-highlight-margin",
+            },
+          })),
+        );
       }
     });
 
@@ -134,6 +181,10 @@ export function useYamlEditor(initialYaml: string): YamlEditorResult {
       model.dispose();
     };
   }, []);
+
+  useEffect(() => {
+    monaco.editor.setTheme(theme === "dark" ? "vs-dark" : "vs");
+  }, [theme]);
 
   const handleEnableBlock = useCallback((block: DisabledBlock) => {
     const editor = editorRef.current;
@@ -147,27 +198,28 @@ export function useYamlEditor(initialYaml: string): YamlEditorResult {
     });
     blockDoc.errors = [];
 
-    if (block.reason === "disabled") {
-      visit(blockDoc, {
-        Pair(_, pair) {
-          if (
-            isScalar(pair.key) &&
-            pair.key.value === "enabled" &&
-            isScalar(pair.value) &&
-            pair.value.value === false
-          ) {
-            pair.value.value = true;
-            return visit.BREAK;
-          }
-        },
-      });
-    }
+    visit(blockDoc, {
+      Pair(_, pair) {
+        if (
+          isScalar(pair.key) &&
+          pair.key.value === "enabled" &&
+          isScalar(pair.value) &&
+          pair.value.value === false
+        ) {
+          pair.value.value = true;
+          return visit.BREAK;
+        }
+      },
+    });
 
     const mainDoc = parseDocument(model.getValue(), {
       uniqueKeys: false,
       strict: false,
     });
     mainDoc.errors = [];
+    if (!isMap(mainDoc.contents)) {
+      mainDoc.contents = new YAMLMap();
+    }
     const blockContents = blockDoc.contents as YAMLMap;
     for (const item of blockContents.items) {
       (mainDoc.contents as YAMLMap).items.push(item);
@@ -179,5 +231,35 @@ export function useYamlEditor(initialYaml: string): YamlEditorResult {
     setDisabledBlocks((prev) => prev.filter((b) => b.name !== block.name));
   }, []);
 
-  return { containerRef, errorCount, disabledBlocks, handleEnableBlock };
+  const getFullYaml = useCallback(() => {
+    const editor = editorRef.current;
+    if (!editor) return initialYaml;
+    const model = editor.getModel();
+    if (!model) return initialYaml;
+    const originalKeyOrder = [...originalBlocksRef.current.keys()];
+    return buildFullYaml(
+      model.getValue(),
+      disabledBlocksRef.current,
+      originalKeyOrder,
+    );
+  }, [initialYaml]);
+
+  const revealLine = useCallback((line: number) => {
+    const editor = editorRef.current;
+    if (!editor) return;
+    editor.revealLineInCenter(line);
+    editor.setPosition({ lineNumber: line, column: 1 });
+    editor.focus();
+  }, []);
+
+  return {
+    containerRef,
+    errorCount,
+    problems,
+    disabledBlocks,
+    handleEnableBlock,
+    getFullYaml,
+    initialYaml,
+    revealLine,
+  };
 }
