@@ -1,21 +1,15 @@
 import { useRef, useEffect, useState, useCallback } from "react";
-import {
-  parseDocument,
-  Document,
-  YAMLMap,
-  type Pair,
-  isMap,
-  isScalar,
-  visit,
-} from "yaml";
+import { YAMLMap, type Pair, isMap } from "yaml";
 import { monaco } from "../editor-setup/monaco-setup";
 import {
+  safeParseDocument,
   parseAndFilterYaml,
   extractAllBlocks,
   buildFullYaml,
   setEnabledInBlock,
 } from "../utils/yaml-utils";
-import type { DisabledBlock, EditorProblem, YamlEditorResult } from "../types";
+import { getMonacoTheme } from "../types";
+import type { DisabledBlock, EditorProblem, Theme, YamlEditorResult } from "../types";
 
 const MODEL_URI = "file:///config.yaml";
 
@@ -26,12 +20,11 @@ const SEVERITY_MAP: Record<number, EditorProblem["severity"]> = {
   [monaco.MarkerSeverity.Hint]: "info",
 };
 
-export function useYamlEditor(initialYaml: string, theme: "dark" | "light" = "dark"): YamlEditorResult {
+export function useYamlEditor(initialYaml: string, theme: Theme = "dark"): YamlEditorResult {
   const containerRef = useRef<HTMLDivElement>(null);
   const editorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null);
   const isUpdatingRef = useRef(false);
   const originalBlocksRef = useRef<Map<string, string>>(new Map());
-  const [errorCount, setErrorCount] = useState(0);
   const [problems, setProblems] = useState<EditorProblem[]>([]);
   const [disabledBlocks, setDisabledBlocks] = useState<DisabledBlock[]>([]);
   const disabledBlocksRef = useRef<DisabledBlock[]>([]);
@@ -54,7 +47,7 @@ export function useYamlEditor(initialYaml: string, theme: "dark" | "light" = "da
     const model =
       existingModel ?? monaco.editor.createModel(filteredYaml, "yaml", uri);
 
-    const monacoTheme = theme === "dark" ? "vs-dark" : "vs";
+    const monacoTheme = getMonacoTheme(theme);
 
     const editor = monaco.editor.create(containerRef.current, {
       model,
@@ -103,11 +96,7 @@ export function useYamlEditor(initialYaml: string, theme: "dark" | "light" = "da
           isUpdatingRef.current = false;
         }
 
-        const currentDoc = parseDocument(valueAfterFilter, {
-          uniqueKeys: false,
-          strict: false,
-        });
-        currentDoc.errors = [];
+        const currentDoc = safeParseDocument(valueAfterFilter);
         const currentKeys = new Set<string>();
         if (isMap(currentDoc.contents)) {
           for (const item of currentDoc.contents.items) {
@@ -148,7 +137,6 @@ export function useYamlEditor(initialYaml: string, theme: "dark" | "light" = "da
     const markerDisposable = monaco.editor.onDidChangeMarkers(([resource]) => {
       if (resource.toString() === model.uri.toString()) {
         const markers = monaco.editor.getModelMarkers({ resource });
-        setErrorCount(markers.length);
 
         setProblems(
           markers.map((m) => ({
@@ -183,7 +171,7 @@ export function useYamlEditor(initialYaml: string, theme: "dark" | "light" = "da
   }, []);
 
   useEffect(() => {
-    monaco.editor.setTheme(theme === "dark" ? "vs-dark" : "vs");
+    monaco.editor.setTheme(getMonacoTheme(theme));
   }, [theme]);
 
   const handleEnableBlock = useCallback((block: DisabledBlock) => {
@@ -192,31 +180,10 @@ export function useYamlEditor(initialYaml: string, theme: "dark" | "light" = "da
     const model = editor.getModel();
     if (!model) return;
 
-    const blockDoc = parseDocument(block.fullText, {
-      uniqueKeys: false,
-      strict: false,
-    });
-    blockDoc.errors = [];
+    const enabledBlockYaml = setEnabledInBlock(block.fullText, true);
+    const blockDoc = safeParseDocument(enabledBlockYaml);
 
-    visit(blockDoc, {
-      Pair(_, pair) {
-        if (
-          isScalar(pair.key) &&
-          pair.key.value === "enabled" &&
-          isScalar(pair.value) &&
-          pair.value.value === false
-        ) {
-          pair.value.value = true;
-          return visit.BREAK;
-        }
-      },
-    });
-
-    const mainDoc = parseDocument(model.getValue(), {
-      uniqueKeys: false,
-      strict: false,
-    });
-    mainDoc.errors = [];
+    const mainDoc = safeParseDocument(model.getValue());
     if (!isMap(mainDoc.contents)) {
       mainDoc.contents = new YAMLMap();
     }
@@ -254,7 +221,7 @@ export function useYamlEditor(initialYaml: string, theme: "dark" | "light" = "da
 
   return {
     containerRef,
-    errorCount,
+    errorCount: problems.length,
     problems,
     disabledBlocks,
     handleEnableBlock,

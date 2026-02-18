@@ -9,7 +9,20 @@ import {
 } from "yaml";
 import type { DisabledBlock } from "../types";
 
-export function hasEnabledFalse(obj: unknown): boolean {
+export function safeParseDocument(yaml: string): Document {
+  const doc = parseDocument(yaml, { uniqueKeys: false, strict: false });
+  doc.errors = [];
+  return doc;
+}
+
+function pairToBlockYaml(pair: Pair): string {
+  const tempDoc = new Document();
+  tempDoc.contents = new YAMLMap();
+  (tempDoc.contents as YAMLMap).items = [pair.clone()];
+  return tempDoc.toString().trim();
+}
+
+function hasEnabledFalse(obj: unknown): boolean {
   if (typeof obj !== "object" || obj === null) return false;
   const rec = obj as Record<string, unknown>;
   if (rec.enabled === false) return true;
@@ -20,8 +33,7 @@ export function parseAndFilterYaml(yaml: string): {
   filteredYaml: string;
   disabledBlocks: DisabledBlock[];
 } {
-  const doc = parseDocument(yaml, { uniqueKeys: false, strict: false });
-  doc.errors = [];
+  const doc = safeParseDocument(yaml);
 
   const contents = doc.contents;
   if (!isMap(contents)) return { filteredYaml: yaml, disabledBlocks: [] };
@@ -33,14 +45,10 @@ export function parseAndFilterYaml(yaml: string): {
   for (const item of contents.items) {
     const pair = item as Pair;
     const key = String(pair.key);
-    const jsValue = jsDoc[key];
-    if (hasEnabledFalse(jsValue)) {
-      const tempDoc = new Document();
-      tempDoc.contents = new YAMLMap();
-      (tempDoc.contents as YAMLMap).items = [(pair as Pair).clone()];
+    if (hasEnabledFalse(jsDoc[key])) {
       disabledBlocks.push({
         name: key,
-        fullText: tempDoc.toString().trim(),
+        fullText: pairToBlockYaml(pair),
         reason: "disabled",
       });
       keysToRemove.push(key);
@@ -60,11 +68,7 @@ export function buildFullYaml(
   disabledBlocks: DisabledBlock[],
   originalKeyOrder: string[],
 ): string {
-  const editorDoc = parseDocument(editorContent, {
-    uniqueKeys: false,
-    strict: false,
-  });
-  editorDoc.errors = [];
+  const editorDoc = safeParseDocument(editorContent);
 
   const editorPairs = new Map<string, Pair>();
   if (isMap(editorDoc.contents)) {
@@ -76,11 +80,7 @@ export function buildFullYaml(
 
   const disabledPairs = new Map<string, Pair>();
   for (const block of disabledBlocks) {
-    const blockDoc = parseDocument(block.fullText, {
-      uniqueKeys: false,
-      strict: false,
-    });
-    blockDoc.errors = [];
+    const blockDoc = safeParseDocument(block.fullText);
     if (isMap(blockDoc.contents)) {
       for (const item of blockDoc.contents.items) {
         const pair = item as Pair;
@@ -114,27 +114,21 @@ export function buildFullYaml(
 }
 
 export function extractAllBlocks(yaml: string): Map<string, string> {
-  const doc = parseDocument(yaml, { uniqueKeys: false, strict: false });
-  doc.errors = [];
+  const doc = safeParseDocument(yaml);
   const blocks = new Map<string, string>();
   const contents = doc.contents;
   if (!isMap(contents)) return blocks;
 
   for (const item of contents.items) {
     const pair = item as Pair;
-    const key = String(pair.key);
-    const tempDoc = new Document();
-    tempDoc.contents = new YAMLMap();
-    (tempDoc.contents as YAMLMap).items = [(pair as Pair).clone()];
-    blocks.set(key, tempDoc.toString().trim());
+    blocks.set(String(pair.key), pairToBlockYaml(pair));
   }
 
   return blocks;
 }
 
 export function setEnabledInBlock(blockYaml: string, value: boolean): string {
-  const doc = parseDocument(blockYaml, { uniqueKeys: false, strict: false });
-  doc.errors = [];
+  const doc = safeParseDocument(blockYaml);
   visit(doc, {
     Pair(_, pair) {
       if (
@@ -151,9 +145,7 @@ export function setEnabledInBlock(blockYaml: string, value: boolean): string {
 }
 
 function parseToJs(yaml: string): Record<string, unknown> {
-  const doc = parseDocument(yaml, { uniqueKeys: false, strict: false });
-  doc.errors = [];
-  return (doc.toJS() as Record<string, unknown>) ?? {};
+  return (safeParseDocument(yaml).toJS() as Record<string, unknown>) ?? {};
 }
 
 export function getChangedBlocks(
@@ -167,9 +159,7 @@ export function getChangedBlocks(
   const changed: Record<string, unknown>[] = [];
 
   for (const key of allKeys) {
-    const origJson = JSON.stringify(orig[key]);
-    const currJson = JSON.stringify(curr[key]);
-    if (origJson !== currJson) {
+    if (JSON.stringify(orig[key]) !== JSON.stringify(curr[key])) {
       changed.push({ [key]: curr[key] ?? null });
     }
   }

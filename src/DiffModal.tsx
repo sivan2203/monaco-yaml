@@ -1,5 +1,5 @@
 import { useRef, useEffect, useCallback } from "react";
-import { monaco } from "./MonacoComponent/editor-setup/monaco-setup";
+import { monaco, getMonacoTheme, type Theme } from "./MonacoComponent";
 
 interface DiffModalProps {
   isOpen: boolean;
@@ -7,7 +7,7 @@ interface DiffModalProps {
   onConfirm: () => void;
   originalYaml: string;
   currentYaml: string;
-  theme?: "dark" | "light";
+  theme?: Theme;
 }
 
 export function DiffModal({
@@ -21,7 +21,7 @@ export function DiffModal({
   const containerRef = useRef<HTMLDivElement>(null);
   const diffEditorRef = useRef<monaco.editor.IDiffEditor | null>(null);
 
-  const monacoTheme = theme === "dark" ? "vs-dark" : "vs";
+  const monacoTheme = getMonacoTheme(theme);
 
   useEffect(() => {
     if (!isOpen || !containerRef.current) return;

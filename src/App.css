@@ -46,6 +46,10 @@
 
   --source-bg: #3c2a2a;
   --source-text: #f48771;
+
+  --severity-error: #f14c4c;
+  --severity-warning: #cca700;
+  --severity-info: #3794ff;
 }
 
 [data-theme="light"] {
@@ -95,6 +99,10 @@
 
   --source-bg: #fce4ec;
   --source-text: #c62828;
+
+  --severity-error: #e51400;
+  --severity-warning: #bf8803;
+  --severity-info: #1a85ff;
 }
 
 .app-container {
@@ -303,6 +311,18 @@ pre {
   flex-shrink: 0;
   font-size: 12px;
   line-height: 1;
+}
+
+.problem-icon-error {
+  color: var(--severity-error);
+}
+
+.problem-icon-warning {
+  color: var(--severity-warning);
+}
+
+.problem-icon-info {
+  color: var(--severity-info);
 }
 
 .problem-source {

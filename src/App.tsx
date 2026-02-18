@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useYamlEditor, getChangedBlocks, ProblemsPanel, type EditorProblem } from "./MonacoComponent";
+import { useYamlEditor, getChangedBlocks, ProblemsPanel, type EditorProblem, type Theme } from "./MonacoComponent";
 import { DiffModal } from "./DiffModal";
 import "./App.css";
 
@@ -83,7 +83,7 @@ ott:
     memory: 351Mi`;
 
 function App() {
-  const [theme, setTheme] = useState<"dark" | "light">("dark");
+  const [theme, setTheme] = useState<Theme>("dark");
 
   useEffect(() => {
     document.documentElement.setAttribute("data-theme", theme);

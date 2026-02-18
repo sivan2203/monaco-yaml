@@ -11,12 +11,6 @@ const SEVERITY_ICONS: Record<EditorProblem["severity"], string> = {
   info: "\u24D8",
 };
 
-const SEVERITY_COLORS: Record<EditorProblem["severity"], string> = {
-  error: "#f14c4c",
-  warning: "#cca700",
-  info: "#3794ff",
-};
-
 export function ProblemsPanel({ problems, onProblemClick }: ProblemsPanelProps) {
   if (problems.length === 0) return null;
 
@@ -33,10 +27,7 @@ export function ProblemsPanel({ problems, onProblemClick }: ProblemsPanelProps) 
             className="problem-item"
             onClick={() => onProblemClick?.(problem)}
           >
-            <span
-              className="problem-icon"
-              style={{ color: SEVERITY_COLORS[problem.severity] }}
-            >
+            <span className={`problem-icon problem-icon-${problem.severity}`}>
               {SEVERITY_ICONS[problem.severity]}
             </span>
             {problem.source === "backend" && (
