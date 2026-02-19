@@ -1,4 +1,4 @@
-import { useRef, useEffect, useState, useCallback } from "react";
+import { useRef, useEffect, useState, useCallback, useMemo } from "react";
 import { YAMLMap, type Pair, isMap } from "yaml";
 import { monaco } from "../editor-setup/monaco-setup";
 import {
@@ -8,10 +8,8 @@ import {
   buildFullYaml,
   setEnabledInBlock,
 } from "../utils/yaml-utils";
-import { getMonacoTheme } from "../types";
-import type { DisabledBlock, EditorProblem, Theme, YamlEditorResult } from "../types";
-
-const MODEL_URI = "file:///config.yaml";
+import type { DisabledBlock, EditorProblem, YamlEditorResult } from "../types";
+import type { OnMount } from "@monaco-editor/react";
 
 const SEVERITY_MAP: Record<number, EditorProblem["severity"]> = {
   [monaco.MarkerSeverity.Error]: "error",
@@ -20,56 +18,42 @@ const SEVERITY_MAP: Record<number, EditorProblem["severity"]> = {
   [monaco.MarkerSeverity.Hint]: "info",
 };
 
-export function useYamlEditor(initialYaml: string, theme: Theme = "dark"): YamlEditorResult {
-  const containerRef = useRef<HTMLDivElement>(null);
+export function useYamlEditor(initialYaml: string): YamlEditorResult {
   const editorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null);
   const isUpdatingRef = useRef(false);
   const originalBlocksRef = useRef<Map<string, string>>(new Map());
+  const debounceTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const disposablesRef = useRef<monaco.IDisposable[]>([]);
+
   const [problems, setProblems] = useState<EditorProblem[]>([]);
   const [disabledBlocks, setDisabledBlocks] = useState<DisabledBlock[]>([]);
   const disabledBlocksRef = useRef<DisabledBlock[]>([]);
+
+  const { filteredYaml, initialDisabled } = useMemo(() => {
+    const result = parseAndFilterYaml(initialYaml);
+    return { filteredYaml: result.filteredYaml, initialDisabled: result.disabledBlocks };
+  }, [initialYaml]);
+
+  useEffect(() => {
+    originalBlocksRef.current = extractAllBlocks(initialYaml);
+    setDisabledBlocks(initialDisabled);
+  }, [initialYaml, initialDisabled]);
 
   useEffect(() => {
     disabledBlocksRef.current = disabledBlocks;
   }, [disabledBlocks]);
 
   useEffect(() => {
-    if (!containerRef.current) return;
+    return () => {
+      clearTimeout(debounceTimerRef.current);
+      disposablesRef.current.forEach((d) => d.dispose());
+      disposablesRef.current = [];
+    };
+  }, []);
 
-    originalBlocksRef.current = extractAllBlocks(initialYaml);
-
-    const { filteredYaml, disabledBlocks: initialDisabled } =
-      parseAndFilterYaml(initialYaml);
-    setDisabledBlocks(initialDisabled);
-
-    const uri = monaco.Uri.parse(MODEL_URI);
-    const existingModel = monaco.editor.getModel(uri);
-    const model =
-      existingModel ?? monaco.editor.createModel(filteredYaml, "yaml", uri);
-
-    const monacoTheme = getMonacoTheme(theme);
-
-    const editor = monaco.editor.create(containerRef.current, {
-      model,
-      theme: monacoTheme,
-      fontSize: 15,
-      minimap: { enabled: false },
-      scrollBeyondLastLine: false,
-      roundedSelection: false,
-      padding: { top: 12 },
-      folding: true,
-      lineNumbers: "on",
-      glyphMargin: false,
-      renderLineHighlight: "all",
-      cursorBlinking: "smooth",
-      automaticLayout: true,
-      quickSuggestions: {
-        other: true,
-        comments: false,
-        strings: true,
-      },
-      formatOnType: true,
-    });
+  const handleEditorMount: OnMount = useCallback((editor) => {
+    disposablesRef.current.forEach((d) => d.dispose());
+    disposablesRef.current = [];
 
     editorRef.current = editor;
 
@@ -77,24 +61,25 @@ export function useYamlEditor(initialYaml: string, theme: Theme = "dark"): YamlE
       editor.getAction("editor.foldLevel1")?.run();
     }, 100);
 
-    let debounceTimer: ReturnType<typeof setTimeout>;
+    const model = editor.getModel();
+    if (!model) return;
 
     const contentDisposable = model.onDidChangeContent(() => {
       if (isUpdatingRef.current) return;
-      clearTimeout(debounceTimer);
-      debounceTimer = setTimeout(() => {
+      clearTimeout(debounceTimerRef.current);
+      debounceTimerRef.current = setTimeout(() => {
         const currentValue = model.getValue();
-        const { filteredYaml, disabledBlocks: newDisabled } =
+        const { filteredYaml: filtered, disabledBlocks: newDisabled } =
           parseAndFilterYaml(currentValue);
-
-        const valueAfterFilter =
-          newDisabled.length > 0 ? filteredYaml : currentValue;
 
         if (newDisabled.length > 0) {
           isUpdatingRef.current = true;
-          model.setValue(filteredYaml);
+          model.setValue(filtered);
           isUpdatingRef.current = false;
         }
+
+        const valueAfterFilter =
+          newDisabled.length > 0 ? filtered : currentValue;
 
         const currentDoc = safeParseDocument(valueAfterFilter);
         const currentKeys = new Set<string>();
@@ -161,18 +146,8 @@ export function useYamlEditor(initialYaml: string, theme: Theme = "dark"): YamlE
       }
     });
 
-    return () => {
-      clearTimeout(debounceTimer);
-      contentDisposable.dispose();
-      markerDisposable.dispose();
-      editor.dispose();
-      model.dispose();
-    };
+    disposablesRef.current.push(contentDisposable, markerDisposable);
   }, []);
-
-  useEffect(() => {
-    monaco.editor.setTheme(getMonacoTheme(theme));
-  }, [theme]);
 
   const handleEnableBlock = useCallback((block: DisabledBlock) => {
     const editor = editorRef.current;
@@ -220,7 +195,8 @@ export function useYamlEditor(initialYaml: string, theme: Theme = "dark"): YamlE
   }, []);
 
   return {
-    containerRef,
+    defaultValue: filteredYaml,
+    handleEditorMount,
     errorCount: problems.length,
     problems,
     disabledBlocks,

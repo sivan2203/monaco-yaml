@@ -1,4 +1,4 @@
-import type { RefObject } from "react";
+import type { OnMount } from "@monaco-editor/react";
 
 export type Theme = "dark" | "light";
 
@@ -21,7 +21,8 @@ export interface EditorProblem {
 }
 
 export interface YamlEditorResult {
-  containerRef: RefObject<HTMLDivElement | null>;
+  defaultValue: string;
+  handleEditorMount: OnMount;
   errorCount: number;
   problems: EditorProblem[];
   disabledBlocks: DisabledBlock[];
@@ -29,4 +30,13 @@ export interface YamlEditorResult {
   getFullYaml: () => string;
   initialYaml: string;
   revealLine: (line: number) => void;
+}
+
+export interface YamlConfigEditorProps {
+  yamlConfig: string;
+  schema: Record<string, unknown>;
+  theme?: Theme;
+  backendProblems?: EditorProblem[];
+  onSave?: (changedBlocks: Record<string, unknown>[]) => void;
+  onCancel?: () => void;
 }
