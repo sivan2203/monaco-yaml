@@ -22,6 +22,25 @@ export function YamlConfigEditor({
 
   useEffect(() => {
     yamlDisposableRef.current?.dispose();
+
+    const origRegister = monaco.languages.registerHoverProvider.bind(monaco.languages);
+    monaco.languages.registerHoverProvider = (languageId, provider) => {
+      if (languageId === "yaml" && provider.provideHover) {
+        const origHover = provider.provideHover.bind(provider);
+        provider.provideHover = async (...args) => {
+          const result = await origHover(...args);
+          if (result) {
+            for (const c of result.contents) {
+              if (typeof c === "object" && "value" in c)
+                c.value = c.value.replace(/\nSource: \[.*?\]\(.*?\)\s*$/, "");
+            }
+          }
+          return result;
+        };
+      }
+      return origRegister(languageId, provider);
+    };
+
     yamlDisposableRef.current = configureMonacoYaml(monaco, {
       enableSchemaRequest: false,
       hover: true,
@@ -36,6 +55,9 @@ export function YamlConfigEditor({
         },
       ],
     });
+
+    monaco.languages.registerHoverProvider = origRegister;
+
     return () => {
       yamlDisposableRef.current?.dispose();
       yamlDisposableRef.current = null;
