@@ -1,6 +1,13 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { YamlConfigEditor, type EditorProblem, type Theme } from "./MonacoComponent";
-import schema from "./MonacoComponent/editor-setup/schema.json";
+import fallbackSchema from "./MonacoComponent/editor-setup/schema.json";
+import {
+  extractSchemaFromResponse,
+  extractServiceSettings,
+  generateYamlFromConfigData,
+  resolveSchemaForEditor,
+  type BackendConfigResponse,
+} from "./MonacoComponent/yaml-generator";
 import "./App.css";
 
 const MOCK_BACKEND_PROBLEMS: EditorProblem[] = [
@@ -20,70 +27,89 @@ const MOCK_BACKEND_PROBLEMS: EditorProblem[] = [
   },
 ];
 
-const yamlConfig = `# Фильтр входящих подключений
-cn:
-  # Флаг активации подключений
-  # Флаг активации подключений
-  # Флаг активации подключений
-  enabled: false
-  whitelist: false
-  whitelist:
-    - CI03194394-CI041129-CLIENT
-    - CI0198749-CI017697072-SERVER-CLIENT
-    - CI03194394-CI041130-CLIENT
-    - CI03194394-CI04115153-CLIENT
-# Параметры Dynatrace
-dynatrace:
-  # Флаг активации
-  enabled: true
-  reflex-host: reflex.acmenet.ru
-  cluster_name: IFT_TERRA00024_EDM_OPENSIFT_DELTA
-  env_name: acmenet
-  reflex_labels: "1.281.02"
-    agent_version: "dynatrace-1.281-02"
-    env: "acme.ru"
-    cluster: "dynatrace"
-    project_name: "cad8393c1-47a7-4149-aaf0-4fd6e617ed0e"
-    project: "c102493683-reflex"
-
-# Параметры Fluentbit sidecar
-fluentbit:
-  enabled: true
-  # sidecar
-  kafka-brokers:
-    - tvldgaudi0003.delta.acme.ru:9093
-  cpu:
-    limits:
-      cpu: 101m
-  memory:
-    limits: 512Mi
-  liveness-probe:
-    initial_delay_seconds: 120
-  readiness-probe:
-    initial_delay_seconds: 120
-  requests:
-    cpu: 5m
-    memory: 256Mi
-  topic: topic123
-
-# Параметры OTT sidecar
-ott:
-  params:
-    # Флаг активации
-    enabled: true
-    cpu:
-      limits: 350m
-    memory: 701Mi
-  liveness-probe:
-    initial_delay_seconds: 121
-  readiness-probe:
-    initial_delay_seconds: 121
-  requests:
-    cpu: 25m
-    memory: 351Mi`;
+const MOCK_CONFIG_RESPONSE: BackendConfigResponse = {
+  data: {
+    serviceSettings: {
+      cn: {
+        enabled: false,
+        whitelist: true,
+        whitelistList: [
+          "CI03194394-CI041129-CLIENT",
+          "CI0198749-CI017697072-SERVER-CLIENT",
+          "CI03194394-CI041130-CLIENT",
+        ],
+      },
+      dynatrace: {
+        enabled: true,
+        reflexHost: "reflex.acmenet.ru",
+        cluster_name: "IFT_TERRA00024_EDM_OPENSIFT_DELTA",
+        env_name: "acmenet",
+        reflex_labels: "team=gateway,service=api",
+      },
+      fluentbit: {
+        enabled: true,
+        kafkaBrokers: ["tvldgaudi0003.delta.acme.ru:9093"],
+        cpu: {
+          limits: "101m",
+        },
+        memory: {
+          limits: "512Mi",
+        },
+        livenessProbe: {
+          initialDelaySeconds: 120,
+        },
+        readinessProbe: {
+          initialDelaySeconds: 120,
+        },
+        requests: {
+          cpu: "5m",
+          memory: "256Mi",
+        },
+        topic: "topic123",
+      },
+      ott: {
+        params: {
+          enabled: true,
+          cpu: {
+            limits: "350m",
+          },
+          memory: {
+            limits: "701Mi",
+          },
+        },
+      },
+      "rate-limits": {
+        enabled: false,
+      },
+      union: {
+        enabled: true,
+        replicas: 1,
+      },
+    },
+  },
+};
 
 function App() {
   const [theme, setTheme] = useState<Theme>("dark");
+  const editorSchema = useMemo(
+    () =>
+      resolveSchemaForEditor({
+        backendSchema: extractSchemaFromResponse(MOCK_CONFIG_RESPONSE),
+        fallbackSchema: fallbackSchema as Record<string, unknown>,
+      }),
+    [],
+  );
+
+  const yamlConfig = useMemo(
+    () =>
+      generateYamlFromConfigData(
+        {
+          serviceSettings: extractServiceSettings(MOCK_CONFIG_RESPONSE),
+        },
+        editorSchema,
+      ),
+    [editorSchema],
+  );
 
   useEffect(() => {
     document.documentElement.setAttribute("data-theme", theme);
@@ -105,7 +131,7 @@ function App() {
       </div>
       <YamlConfigEditor
         yamlConfig={yamlConfig}
-        schema={schema as unknown as Record<string, unknown>}
+        schema={editorSchema as Record<string, unknown>}
         theme={theme}
         backendProblems={MOCK_BACKEND_PROBLEMS}
         onSave={handleSave}

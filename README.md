@@ -40,6 +40,11 @@ src/
 │   │   └── yaml-utils.ts            # YAML parsing, diffing, block manipulation
 │   ├── ui/
 │   │   └── problems-panel.tsx       # Inline problems list (errors, warnings, info)
+│   ├── yaml-generator/
+│   │   ├── config-data.interface.ts # Input contracts for backend payload & schema shape
+│   │   ├── schema-source.ts         # Helpers for schema/settings extraction from response
+│   │   ├── generate-yaml.ts         # YAML generation pipeline (normalize + schema template)
+│   │   └── index.ts                 # Public exports for YAML generation module
 │   └── editor-setup/
 │       ├── monaco-setup.ts          # Monaco environment bootstrap
 │       ├── schema.json              # JSON Schema for the demo config
@@ -81,6 +86,61 @@ When the user clicks **Save**:
 2. A `DiffModal` opens showing a read-only side-by-side diff (original ↔ current).
 3. On confirmation, `getChangedBlocks()` compares old and new JS representations and returns only the top-level keys whose values changed.
 4. The `onSave` callback receives the array of changed blocks.
+
+## YAML Generation Pipeline (Step by Step)
+
+The app now generates initial YAML from backend-like data instead of storing one hardcoded YAML string.
+
+### 1. Read backend response and schema source
+
+In `src/MonacoComponent/yaml-generator/schema-source.ts`:
+
+1. `extractServiceSettings(response)` extracts config data from either:
+   - `response.serviceSettings`, or
+   - `response.data.serviceSettings`.
+2. `extractSchemaFromResponse(response)` extracts schema from either:
+   - `response.schema`, or
+   - `response.data.schema`.
+3. `resolveSchemaForEditor({ backendSchema, fallbackSchema })` picks:
+   - backend schema if present and valid object,
+   - otherwise local fallback schema from `editor-setup/schema.json`.
+
+### 2. Normalize backend keys to YAML/schema keys
+
+In `src/MonacoComponent/yaml-generator/generate-yaml.ts`:
+
+1. `generateYamlFromConfigData(input, schema)` starts with `serviceSettings`.
+2. `normalizeKeysDeep(...)` recursively renames keys using aliases (`DEFAULT_KEY_ALIASES`), e.g.:
+   - `kafkaBrokers -> kafka-brokers`
+   - `livenessProbe -> liveness-probe`
+   - `initialDelaySeconds -> initial_delay_seconds`
+3. Extra aliases can be passed through `input.keyAliases`.
+
+### 3. Shape output by JSON schema template
+
+`applySchemaTemplate(source, schema)` builds an output object in schema-driven order:
+
+1. Iterates `schema.properties` in order.
+2. For each schema key:
+   - if source contains value, it is normalized recursively by `normalizeValueBySchema(...)`;
+   - if value is missing, `extractDefaultFromSchema(...)` attempts to fill defaults from schema.
+3. After schema keys are processed, unknown source keys are appended to avoid data loss.
+
+### 4. Serialize final object to YAML
+
+`generateYamlFromConfigData(...)` serializes the final object with:
+
+- `yaml.stringify(..., { indent: 2 })`
+- and returns a trimmed YAML string.
+
+### 5. Inject into Monaco editor on load
+
+In `src/App.tsx`:
+
+1. `editorSchema` is resolved once (`useMemo`) via `resolveSchemaForEditor(...)`.
+2. `yamlConfig` is generated once (`useMemo`) via `generateYamlFromConfigData(...)`.
+3. `yamlConfig` is passed to `YamlConfigEditor` as initial editor text.
+4. `schema={editorSchema}` is passed to Monaco YAML validation/autocomplete.
 
 ## Getting Started
 
