@@ -1,4 +1,5 @@
 import type { OnMount } from "@monaco-editor/react";
+import type { SaveBlockRunner } from "./save-flow/interfaces";
 
 export type Theme = "dark" | "light";
 
@@ -38,5 +39,6 @@ export interface YamlConfigEditorProps {
   theme?: Theme;
   backendProblems?: EditorProblem[];
   onSave?: (changedBlocks: Record<string, unknown>[]) => void;
+  saveFlowRunner?: SaveBlockRunner;
   onCancel?: () => void;
 }

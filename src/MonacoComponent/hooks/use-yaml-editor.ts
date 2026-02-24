@@ -18,6 +18,10 @@ const SEVERITY_MAP: Record<number, EditorProblem["severity"]> = {
   [monaco.MarkerSeverity.Hint]: "info",
 };
 
+/**
+ * Управляет жизненным циклом YAML-редактора: фильтрацией блоков, проблемами валидации
+ * и сборкой полного YAML для сценария сохранения.
+ */
 export function useYamlEditor(initialYaml: string): YamlEditorResult {
   const editorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null);
   const isUpdatingRef = useRef(false);
@@ -31,7 +35,10 @@ export function useYamlEditor(initialYaml: string): YamlEditorResult {
 
   const { filteredYaml, initialDisabled } = useMemo(() => {
     const result = parseAndFilterYaml(initialYaml);
-    return { filteredYaml: result.filteredYaml, initialDisabled: result.disabledBlocks };
+    return {
+      filteredYaml: result.filteredYaml,
+      initialDisabled: result.disabledBlocks,
+    };
   }, [initialYaml]);
 
   useEffect(() => {
@@ -51,6 +58,9 @@ export function useYamlEditor(initialYaml: string): YamlEditorResult {
     };
   }, []);
 
+  /**
+   * Инициализирует Monaco callbacks при монтировании редактора.
+   */
   const handleEditorMount: OnMount = useCallback((editor) => {
     disposablesRef.current.forEach((d) => d.dispose());
     disposablesRef.current = [];
@@ -64,6 +74,9 @@ export function useYamlEditor(initialYaml: string): YamlEditorResult {
     const model = editor.getModel();
     if (!model) return;
 
+    /**
+     * Отслеживает изменения текста: фильтрует disabled-блоки и синхронизирует sidebar.
+     */
     const contentDisposable = model.onDidChangeContent(() => {
       if (isUpdatingRef.current) return;
       clearTimeout(debounceTimerRef.current);
@@ -119,6 +132,10 @@ export function useYamlEditor(initialYaml: string): YamlEditorResult {
 
     const errorDecorations = editor.createDecorationsCollection([]);
 
+    /**
+     * Преобразует маркеры Monaco в единый формат EditorProblem
+     * и обновляет подсветку строк с ошибками.
+     */
     const markerDisposable = monaco.editor.onDidChangeMarkers(([resource]) => {
       if (resource.toString() === model.uri.toString()) {
         const markers = monaco.editor.getModelMarkers({ resource });
@@ -149,6 +166,9 @@ export function useYamlEditor(initialYaml: string): YamlEditorResult {
     disposablesRef.current.push(contentDisposable, markerDisposable);
   }, []);
 
+  /**
+   * Возвращает выбранный блок из sidebar обратно в YAML и включает enabled=true.
+   */
   const handleEnableBlock = useCallback((block: DisabledBlock) => {
     const editor = editorRef.current;
     if (!editor) return;
@@ -173,6 +193,9 @@ export function useYamlEditor(initialYaml: string): YamlEditorResult {
     setDisabledBlocks((prev) => prev.filter((b) => b.name !== block.name));
   }, []);
 
+  /**
+   * Собирает финальный YAML для сохранения: текст редактора + disabled/deleted блоки.
+   */
   const getFullYaml = useCallback(() => {
     const editor = editorRef.current;
     if (!editor) return initialYaml;
@@ -186,6 +209,9 @@ export function useYamlEditor(initialYaml: string): YamlEditorResult {
     );
   }, [initialYaml]);
 
+  /**
+   * Прокручивает редактор к строке проблемы и ставит туда курсор.
+   */
   const revealLine = useCallback((line: number) => {
     const editor = editorRef.current;
     if (!editor) return;

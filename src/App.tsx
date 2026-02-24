@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { YamlConfigEditor, type EditorProblem, type Theme } from "./MonacoComponent";
+import { mockBlockRunner } from "./MonacoComponent/save-flow";
 import fallbackSchema from "./MonacoComponent/editor-setup/schema.json";
 import {
   extractSchemaFromResponse,
@@ -10,22 +11,7 @@ import {
 } from "./MonacoComponent/yaml-generator";
 import "./App.css";
 
-const MOCK_BACKEND_PROBLEMS: EditorProblem[] = [
-  {
-    source: "backend",
-    severity: "error",
-    message: "Значение cluster_name не найдено в реестре кластеров. Проверьте правильность имени.",
-    startLineNumber: 23,
-    startColumn: 3,
-  },
-  {
-    source: "backend",
-    severity: "warning",
-    message: "Параметр topic «topic123» устарел. Рекомендуется использовать формат «project.service.topic».",
-    startLineNumber: 50,
-    startColumn: 3,
-  },
-];
+const MOCK_BACKEND_PROBLEMS: EditorProblem[] = [];
 
 const MOCK_CONFIG_RESPONSE: BackendConfigResponse = {
   data: {
@@ -115,8 +101,14 @@ function App() {
     document.documentElement.setAttribute("data-theme", theme);
   }, [theme]);
 
+  /**
+   * Переключает тему демонстрационного приложения.
+   */
   const toggleTheme = () => setTheme((prev) => (prev === "dark" ? "light" : "dark"));
 
+  /**
+   * Получает подтверждённые изменённые блоки после успешного save-flow.
+   */
   function handleSave(changedBlocks: Record<string, unknown>[]) {
     console.log("Changed blocks:", changedBlocks);
   }
@@ -135,6 +127,7 @@ function App() {
         theme={theme}
         backendProblems={MOCK_BACKEND_PROBLEMS}
         onSave={handleSave}
+        saveFlowRunner={mockBlockRunner}
       />
     </div>
   );

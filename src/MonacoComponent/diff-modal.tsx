@@ -6,10 +6,12 @@ import { getMonacoTheme, type Theme } from "./types";
 interface DiffModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onCloseRequest?: () => void;
   onConfirm: () => void;
   originalYaml: string;
   currentYaml: string;
   theme?: Theme;
+  isSaving?: boolean;
 }
 
 const DIFF_OPTIONS = {
@@ -26,10 +28,12 @@ const DIFF_OPTIONS = {
 export function DiffModal({
   isOpen,
   onClose,
+  onCloseRequest,
   onConfirm,
   originalYaml,
   currentYaml,
   theme = "dark",
+  isSaving = false,
 }: DiffModalProps) {
   const modelsRef = useRef<{
     original: monacoEditor.editor.ITextModel | null;
@@ -51,20 +55,38 @@ export function DiffModal({
     modelsRef.current = { original: null, modified: null };
   }, [isOpen]);
 
+  /**
+   * Централизует попытку закрыть модалку, чтобы родитель мог поставить guard.
+   */
+  const requestClose = useCallback(() => {
+    if (isSaving) return;
+    if (onCloseRequest) {
+      onCloseRequest();
+      return;
+    }
+    onClose();
+  }, [isSaving, onCloseRequest, onClose]);
+
   useEffect(() => {
     if (!isOpen) return;
+    /**
+     * Закрывает модалку по Escape через общий requestClose.
+     */
     function handleKeyDown(e: KeyboardEvent) {
-      if (e.key === "Escape") onClose();
+      if (e.key === "Escape") requestClose();
     }
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isOpen, onClose]);
+  }, [isOpen, requestClose]);
 
+  /**
+   * Закрывает модалку по клику на оверлей, но не по клику внутри контента.
+   */
   const handleOverlayClick = useCallback(
     (e: React.MouseEvent) => {
-      if (e.target === e.currentTarget) onClose();
+      if (e.target === e.currentTarget) requestClose();
     },
-    [onClose],
+    [requestClose],
   );
 
   if (!isOpen) return null;
@@ -93,11 +115,11 @@ export function DiffModal({
           />
         </div>
         <div className="yce-diff-footer">
-          <button className="yce-diff-btn-cancel" onClick={onClose}>
+          <button className="yce-diff-btn-cancel" onClick={requestClose} disabled={isSaving}>
             Отменить
           </button>
-          <button className="yce-diff-btn-confirm" onClick={onConfirm}>
-            Подтвердить
+          <button className="yce-diff-btn-confirm" onClick={onConfirm} disabled={isSaving}>
+            {isSaving ? "Сохраняем..." : "Подтвердить"}
           </button>
         </div>
       </div>

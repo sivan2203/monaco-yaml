@@ -480,6 +480,11 @@
   color: var(--text-primary);
 }
 
+.yce-diff-btn-cancel:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 .yce-diff-btn-confirm {
   padding: 8px 20px;
   background: var(--confirm-bg);
@@ -496,4 +501,130 @@
 .yce-diff-btn-confirm:hover {
   background: var(--confirm-bg-hover);
   border-color: var(--confirm-border-hover);
+}
+
+.yce-diff-btn-cancel:disabled,
+.yce-diff-btn-confirm:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* ── Status Modals (save success / close warning) ── */
+
+.yce-status-overlay {
+  position: fixed;
+  inset: 0;
+  background: var(--bg-overlay);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1100;
+}
+
+.yce-status-content {
+  width: min(520px, calc(100vw - 32px));
+  background: var(--bg-primary);
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  box-shadow: 0 8px 32px var(--bg-modal-shadow);
+  padding: 16px;
+}
+
+.yce-status-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.yce-status-message {
+  margin-top: 10px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+
+.yce-status-footer {
+  margin-top: 16px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.yce-status-btn-primary {
+  padding: 8px 16px;
+  background: var(--save-bg);
+  border: 1px solid var(--save-border);
+  border-radius: 6px;
+  color: var(--text-on-accent);
+  cursor: pointer;
+  font-size: 13px;
+  font-family: inherit;
+  font-weight: 500;
+}
+
+.yce-status-btn-primary:hover {
+  background: var(--save-bg-hover);
+  border-color: var(--save-border-hover);
+}
+
+.yce-diff-btn-confirm:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+/* ── Status modals (success/warning) ── */
+
+.yce-status-overlay {
+  position: fixed;
+  inset: 0;
+  background: var(--bg-overlay);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1100;
+}
+
+.yce-status-content {
+  width: min(480px, 92vw);
+  background: var(--bg-primary);
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  box-shadow: 0 8px 32px var(--bg-modal-shadow);
+  padding: 18px;
+}
+
+.yce-status-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 10px;
+}
+
+.yce-status-message {
+  font-size: 14px;
+  color: var(--text-secondary);
+  line-height: 1.45;
+}
+
+.yce-status-footer {
+  margin-top: 16px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.yce-status-btn-primary {
+  padding: 8px 18px;
+  background: var(--save-bg);
+  border: 1px solid var(--save-border);
+  border-radius: 4px;
+  color: var(--text-on-accent);
+  cursor: pointer;
+  font-size: 13px;
+  font-family: inherit;
+  font-weight: 500;
+  transition: all 0.15s ease;
+}
+
+.yce-status-btn-primary:hover {
+  background: var(--save-bg-hover);
+  border-color: var(--save-border-hover);
 }

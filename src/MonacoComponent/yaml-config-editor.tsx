@@ -5,6 +5,12 @@ import { useYamlEditor } from "./hooks/use-yaml-editor";
 import { getChangedBlocks } from "./utils/yaml-utils";
 import { ProblemsPanel } from "./ui/problems-panel";
 import { DiffModal } from "./diff-modal";
+import {
+  SaveSuccessModal,
+  mapSaveErrorsToBackendProblems,
+  mockBlockRunner,
+  runSaveFlow,
+} from "./save-flow";
 import { monaco } from "./editor-setup/monaco-setup";
 import { getMonacoTheme } from "./types";
 import type { YamlConfigEditorProps, EditorProblem } from "./types";
@@ -16,6 +22,7 @@ export function YamlConfigEditor({
   theme = "dark",
   backendProblems = [],
   onSave,
+  saveFlowRunner,
   onCancel,
 }: YamlConfigEditorProps) {
   const yamlDisposableRef = useRef<{ dispose(): void } | null>(null);
@@ -76,23 +83,51 @@ export function YamlConfigEditor({
     revealLine,
   } = useYamlEditor(yamlConfig);
 
-  const allProblems = useMemo(
-    () => [...problems, ...backendProblems],
-    [problems, backendProblems],
-  );
-
   const [isDiffOpen, setIsDiffOpen] = useState(false);
   const [diffYaml, setDiffYaml] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveBackendProblems, setSaveBackendProblems] = useState<EditorProblem[]>([]);
+  const [isSuccessOpen, setIsSuccessOpen] = useState(false);
 
+  const allProblems = useMemo(
+    () => [...problems, ...backendProblems, ...saveBackendProblems],
+    [problems, backendProblems, saveBackendProblems],
+  );
+
+  /**
+   * Готовит полный YAML и открывает diff перед подтверждением сохранения.
+   */
   function handleSave() {
     setDiffYaml(getFullYaml());
     setIsDiffOpen(true);
   }
 
-  function handleConfirm() {
+  /**
+   * Запускает последовательный save-flow по изменённым блокам и
+   * обновляет UI в зависимости от результата (ошибки/успех).
+   */
+  async function handleConfirm() {
+    if (isSaving) return;
+
     const changedBlocks = getChangedBlocks(initialYaml, diffYaml);
-    onSave?.(changedBlocks);
-    setIsDiffOpen(false);
+    const activeRunner = saveFlowRunner ?? mockBlockRunner;
+
+    setIsSaving(true);
+
+    try {
+      const saveResult = await runSaveFlow(changedBlocks, activeRunner);
+      if (!saveResult.isSuccess) {
+        setSaveBackendProblems(mapSaveErrorsToBackendProblems(saveResult.errors));
+        return;
+      }
+
+      setSaveBackendProblems([]);
+      onSave?.(changedBlocks);
+      setIsDiffOpen(false);
+      setIsSuccessOpen(true);
+    } finally {
+      setIsSaving(false);
+    }
   }
 
   return (
@@ -179,7 +214,9 @@ export function YamlConfigEditor({
         originalYaml={initialYaml}
         currentYaml={diffYaml}
         theme={theme}
+        isSaving={isSaving}
       />
+      <SaveSuccessModal isOpen={isSuccessOpen} onClose={() => setIsSuccessOpen(false)} />
     </div>
   );
 }

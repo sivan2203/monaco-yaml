@@ -1,162 +1,214 @@
 # YAML Config Editor
 
-A React component for editing YAML configuration files with real-time validation, JSON Schema support, and diff preview — built on top of [Monaco Editor](https://microsoft.github.io/monaco-editor/) and [monaco-yaml](https://github.com/remcohaszing/monaco-yaml).
+React-компонент для редактирования YAML-конфигураций с валидацией в реальном времени, поддержкой JSON Schema и предпросмотром diff — построен на базе [Monaco Editor](https://microsoft.github.io/monaco-editor/) и [monaco-yaml](https://github.com/remcohaszing/monaco-yaml).
 
-## Features
+## Возможности
 
-- **Schema-driven validation & autocompletion** — Validates YAML against a JSON Schema in real-time and provides context-aware suggestions via `monaco-yaml`.
-- **Disabled block management** — YAML blocks with `enabled: false` are automatically stripped from the editor and displayed in a sidebar panel. Users can re-enable them with a single click.
-- **Deleted block tracking** — When a user removes a top-level block from the editor, it is preserved internally with `enabled: false` so the full config can always be reconstructed.
-- **Backend problem markers** — Supports injecting external (server-side) validation errors and warnings alongside built-in schema diagnostics.
-- **Diff preview on save** — Before confirming changes, a side-by-side diff modal shows the original vs. modified YAML using Monaco's built-in `DiffEditor`.
-- **Changed block extraction** — On save, only the top-level blocks that actually changed are reported to the consumer via `onSave` callback.
-- **Dark / Light theme** — Fully supports both themes, toggled at runtime.
-- **Code folding** — Top-level blocks are auto-folded on mount for a cleaner overview.
+- **Валидация и автодополнение на основе схемы** — Валидирует YAML по JSON Schema в реальном времени и предоставляет контекстные подсказки через `monaco-yaml`.
+- **Управление отключенными блоками** — YAML-блоки с `enabled: false` автоматически убираются из редактора и отображаются в боковой панели. Пользователь может включить их обратно в один клик.
+- **Отслеживание удаленных блоков** — Когда пользователь удаляет верхнеуровневый блок из редактора, он сохраняется внутренне с `enabled: false`, чтобы полную конфигурацию всегда можно было восстановить.
+- **Маркеры проблем бэкенда** — Поддерживается добавление внешних (серверных) ошибок и предупреждений валидации вместе со встроенной диагностикой схемы.
+- **Предпросмотр diff при сохранении** — Перед подтверждением изменений открывается модальное окно с diff "было/стало" через встроенный Monaco `DiffEditor`.
+- **Извлечение измененных блоков** — При сохранении в `onSave` передаются только те верхнеуровневые блоки, которые действительно изменились.
+- **Темы Dark / Light** — Полная поддержка обеих тем с переключением во время работы.
+- **Сворачивание кода** — Верхнеуровневые блоки автоматически сворачиваются при инициализации для более чистого обзора.
 
-## Tech Stack
+## Технологический стек
 
-| Layer | Library |
-|-------|---------|
+| Слой | Библиотека |
+|------|------------|
 | UI | React 19, TypeScript |
-| Editor | `monaco-editor` 0.52, `@monaco-editor/react` 4.7 |
-| YAML intelligence | `monaco-yaml` 5.4 |
-| YAML parsing | `yaml` (js-yaml successor) |
-| Build | Vite 7 |
+| Редактор | `monaco-editor` 0.52, `@monaco-editor/react` 4.7 |
+| YAML-интеллект | `monaco-yaml` 5.4 |
+| Парсинг YAML | `yaml` (преемник js-yaml) |
+| Сборка | Vite 7 |
 
-## Project Structure
+## Структура проекта
 
 ```
 src/
-├── App.tsx                          # Demo app with mock config & backend problems
+├── App.tsx                          # Демо-приложение с моковой конфигурацией и ошибками бэкенда
 ├── MonacoComponent/
-│   ├── index.ts                     # Public API — exports component & types
-│   ├── yaml-config-editor.tsx       # Main editor component
-│   ├── diff-modal.tsx               # Side-by-side diff confirmation dialog
-│   ├── types.ts                     # Shared TypeScript interfaces
-│   ├── styles.css                   # Component styles (dark/light themes)
+│   ├── index.ts                     # Публичный API — экспорт компонента и типов
+│   ├── yaml-config-editor.tsx       # Основной компонент редактора
+│   ├── diff-modal.tsx               # Диалог подтверждения с diff "было/стало"
+│   ├── types.ts                     # Общие интерфейсы TypeScript
+│   ├── styles.css                   # Стили компонента (темы dark/light)
 │   ├── hooks/
-│   │   └── use-yaml-editor.ts       # Core hook: editing, filtering, problem tracking
+│   │   └── use-yaml-editor.ts       # Ключевой хук: редактирование, фильтрация, отслеживание проблем
 │   ├── utils/
-│   │   └── yaml-utils.ts            # YAML parsing, diffing, block manipulation
+│   │   └── yaml-utils.ts            # Парсинг YAML, вычисление diff, работа с блоками
 │   ├── ui/
-│   │   └── problems-panel.tsx       # Inline problems list (errors, warnings, info)
+│   │   └── problems-panel.tsx       # Встроенный список проблем (errors, warnings, info)
 │   ├── yaml-generator/
-│   │   ├── config-data.interface.ts # Input contracts for backend payload & schema shape
-│   │   ├── schema-source.ts         # Helpers for schema/settings extraction from response
-│   │   ├── generate-yaml.ts         # YAML generation pipeline (normalize + schema template)
-│   │   └── index.ts                 # Public exports for YAML generation module
+│   │   ├── config-data.interface.ts # Контракты входа для payload бэкенда и формы схемы
+│   │   ├── schema-source.ts         # Вспомогательные функции извлечения schema/settings из ответа
+│   │   ├── generate-yaml.ts         # Пайплайн генерации YAML (normalize + шаблон схемы)
+│   │   └── index.ts                 # Публичные экспорты модуля генерации YAML
 │   └── editor-setup/
-│       ├── monaco-setup.ts          # Monaco environment bootstrap
-│       ├── schema.json              # JSON Schema for the demo config
-│       ├── editor.worker.js         # Monaco base web worker
-│       └── yaml.worker.js           # monaco-yaml language worker
+│       ├── monaco-setup.ts          # Инициализация окружения Monaco
+│       ├── schema.json              # JSON Schema для демо-конфигурации
+│       ├── editor.worker.js         # Базовый web worker для Monaco
+│       └── yaml.worker.js           # Языковой worker для monaco-yaml
 ```
 
-## How It Works
+## Как это работает
 
-### 1. Initialization
+### 1. Инициализация
 
-`YamlConfigEditor` receives raw YAML, a JSON Schema, and optional backend problems as props. On mount it:
+`YamlConfigEditor` получает через props исходный YAML, JSON Schema и (опционально) проблемы от бэкенда. При монтировании он:
 
-1. Configures `monaco-yaml` with the supplied schema (autocompletion, hover docs, validation).
-2. Parses the YAML using the `yaml` library and separates **enabled** blocks (displayed in the editor) from **disabled** blocks (`enabled: false` — moved to the sidebar).
-3. Stores the original block map so it can later detect deletions and reconstruct the full config.
+1. Настраивает `monaco-yaml` с переданной схемой (автодополнение, hover-документация, валидация).
+2. Парсит YAML через библиотеку `yaml` и разделяет **включенные** блоки (показываются в редакторе) и **отключенные** блоки (`enabled: false` — перемещаются в боковую панель).
+3. Сохраняет исходную карту блоков, чтобы позже определить удаления и восстановить полную конфигурацию.
 
-### 2. Editing
+### 2. Редактирование
 
-While the user edits:
+Во время редактирования:
 
-- **Content change handler** (debounced at 500 ms) re-parses the editor value on every change. If a block has just been set to `enabled: false`, it is silently removed from the editor and pushed to the disabled sidebar.
-- **Deleted blocks** — if a top-level key disappears from the editor and is not already tracked, it is recorded as a deleted block with `enabled: false`.
-- **Monaco markers listener** transforms Monaco diagnostic markers into a unified `EditorProblem[]` array and renders error line decorations.
+- **Обработчик изменения контента** (debounce 500 мс) заново парсит значение редактора при каждом изменении. Если блок только что получил `enabled: false`, он тихо удаляется из редактора и попадает в панель отключенных блоков.
+- **Удаленные блоки** — если верхнеуровневый ключ исчез из редактора и еще не отслеживается, он записывается как удаленный блок с `enabled: false`.
+- **Слушатель маркеров Monaco** преобразует диагностические маркеры Monaco в единый массив `EditorProblem[]` и отрисовывает декорации строк с ошибками.
 
-### 3. Sidebar (Disabled Blocks)
+### 3. Боковая панель (Отключенные блоки)
 
-The sidebar lists all blocks that are currently disabled or deleted. Clicking a block:
+Боковая панель показывает все блоки, которые сейчас отключены или удалены. При клике по блоку:
 
-1. Parses its stored YAML, flips `enabled` back to `true`.
-2. Appends the block to the editor's document model.
-3. Removes it from the sidebar.
+1. Парсится сохраненный YAML блока, `enabled` переключается обратно в `true`.
+2. Блок добавляется в модель документа редактора.
+3. Блок удаляется из боковой панели.
 
-### 4. Saving
+### 4. Сохранение
 
-When the user clicks **Save**:
+Когда пользователь нажимает **Save**:
 
-1. `getFullYaml()` merges the editor content with all disabled/deleted blocks, preserving the original key order.
-2. A `DiffModal` opens showing a read-only side-by-side diff (original ↔ current).
-3. On confirmation, `getChangedBlocks()` compares old and new JS representations and returns only the top-level keys whose values changed.
-4. The `onSave` callback receives the array of changed blocks.
+1. `getFullYaml()` объединяет контент редактора со всеми отключенными/удаленными блоками, сохраняя исходный порядок ключей.
+2. Открывается `DiffModal` с режимом read-only и diff "было/стало" (original ↔ current).
+3. После подтверждения `getChangedBlocks()` сравнивает старые и новые JS-представления и возвращает только верхнеуровневые ключи с измененными значениями.
+4. Редактор запускает последовательный save flow (моковый Promise runner в демо-режиме, hook-based runner в интеграции с хостом).
+5. Ошибки бэкенда мапятся в `EditorProblem` с источником `backend` и показываются в панели проблем под редактором.
+6. Если каждый блок успешно обновлен, показывается модальное окно успеха, после чего `onSave` получает измененные блоки.
 
-## YAML Generation Pipeline (Step by Step)
+## Логика Save Flow (пошагово)
 
-The app now generates initial YAML from backend-like data instead of storing one hardcoded YAML string.
+Этот раздел описывает полный пайплайн подтверждения/сохранения, который сейчас использует редактор.
 
-### 1. Read backend response and schema source
+1. Пользователь нажимает `Сохранить` в футере.
+2. Редактор вызывает `getFullYaml()` и собирает полный YAML из:
+   - текущего текста редактора;
+   - отключенных/удаленных блоков из боковой панели;
+   - исходного порядка верхнеуровневых ключей.
+3. Открывается diff-модалка (`Подтверждение изменений`) с исходным и текущим YAML.
+4. Пользователь нажимает `Подтвердить`.
+5. Редактор вычисляет `changedBlocks` через `getChangedBlocks(initialYaml, diffYaml)`.
+6. Редактор запускает последовательный оркестратор сохранения (`runSaveFlow`) и вызывает runner по одному блоку:
+   - `block[0] -> await`;
+   - `block[1] -> await`;
+   - ...;
+   - `block[n] -> await`.
+7. Редактор ждет завершения всех операций по блокам.
+8. Если одна или несколько операций завершаются ошибкой:
+   - результат flow помечается как failed;
+   - ошибки мапятся в backend problems (`source: "backend"`, `severity: "error"`);
+   - проблемы отображаются в `ProblemsPanel` под основной областью редактора.
+9. Если все операции успешны:
+   - ошибки сохранения бэкенда очищаются;
+   - diff-модалка закрывается;
+   - показывается модалка успеха (`Успешно обновлено`);
+   - вызывается consumer `onSave(changedBlocks)`.
+10. Пользователь может закрыть модалку успеха и продолжить редактирование.
 
-In `src/MonacoComponent/yaml-generator/schema-source.ts`:
+## Как заменить моковый runner реальными хуками
 
-1. `extractServiceSettings(response)` extracts config data from either:
-   - `response.serviceSettings`, or
+В демо используется `mockBlockRunner` (на основе Promise), и он намеренно API-совместим с реализациями на базе хуков.
+
+### Ожидаемый контракт runner
+
+Runner получает один измененный блок и возвращает promise с результатом успех/ошибка на уровне блока:
+
+- вход: `{ block, blockIndex, totalBlocks }`
+- выход:
+  - успех: `{ ok: true, blockName }`
+  - ошибка: `{ ok: false, error: { blockName, message, startLineNumber?, startColumn? } }`
+
+### Интеграция в host-проект
+
+1. Реализуйте функцию `saveFlowRunner`, которая вызывает вашу backend-мутацию, запускаемую через хук, для текущего блока.
+2. Возвращайте нормализованный объект результата в той же форме, что описана выше.
+3. Передайте runner в редактор:
+   - `<YamlConfigEditor saveFlowRunner={yourHookRunner} ... />`
+4. Оставьте оркестрацию в редакторе без изменений: запросы по-прежнему будут выполняться последовательно, а ошибки агрегироваться.
+
+## Пайплайн генерации YAML (пошагово)
+
+Теперь приложение генерирует начальный YAML из backend-подобных данных вместо хранения одной захардкоженной YAML-строки.
+
+### 1. Чтение ответа бэкенда и источника схемы
+
+В `src/MonacoComponent/yaml-generator/schema-source.ts`:
+
+1. `extractServiceSettings(response)` извлекает данные конфигурации из:
+   - `response.serviceSettings`, или
    - `response.data.serviceSettings`.
-2. `extractSchemaFromResponse(response)` extracts schema from either:
-   - `response.schema`, or
+2. `extractSchemaFromResponse(response)` извлекает схему из:
+   - `response.schema`, или
    - `response.data.schema`.
-3. `resolveSchemaForEditor({ backendSchema, fallbackSchema })` picks:
-   - backend schema if present and valid object,
-   - otherwise local fallback schema from `editor-setup/schema.json`.
+3. `resolveSchemaForEditor({ backendSchema, fallbackSchema })` выбирает:
+   - схему бэкенда, если она присутствует и является валидным объектом,
+   - иначе локальную fallback-схему из `editor-setup/schema.json`.
 
-### 2. Normalize backend keys to YAML/schema keys
+### 2. Нормализация ключей бэкенда в ключи YAML/схемы
 
-In `src/MonacoComponent/yaml-generator/generate-yaml.ts`:
+В `src/MonacoComponent/yaml-generator/generate-yaml.ts`:
 
-1. `generateYamlFromConfigData(input, schema)` starts with `serviceSettings`.
-2. `normalizeKeysDeep(...)` recursively renames keys using aliases (`DEFAULT_KEY_ALIASES`), e.g.:
+1. `generateYamlFromConfigData(input, schema)` стартует с `serviceSettings`.
+2. `normalizeKeysDeep(...)` рекурсивно переименовывает ключи с использованием алиасов (`DEFAULT_KEY_ALIASES`), например:
    - `kafkaBrokers -> kafka-brokers`
    - `livenessProbe -> liveness-probe`
    - `initialDelaySeconds -> initial_delay_seconds`
-3. Extra aliases can be passed through `input.keyAliases`.
+3. Дополнительные алиасы можно передать через `input.keyAliases`.
 
-### 3. Shape output by JSON schema template
+### 3. Формирование результата по шаблону JSON Schema
 
-`applySchemaTemplate(source, schema)` builds an output object in schema-driven order:
+`applySchemaTemplate(source, schema)` строит итоговый объект в порядке, заданном схемой:
 
-1. Iterates `schema.properties` in order.
-2. For each schema key:
-   - if source contains value, it is normalized recursively by `normalizeValueBySchema(...)`;
-   - if value is missing, `extractDefaultFromSchema(...)` attempts to fill defaults from schema.
-3. After schema keys are processed, unknown source keys are appended to avoid data loss.
+1. Итерируется по `schema.properties` по порядку.
+2. Для каждого ключа схемы:
+   - если значение присутствует в source, оно рекурсивно нормализуется через `normalizeValueBySchema(...)`;
+   - если значение отсутствует, `extractDefaultFromSchema(...)` пытается подставить значение по умолчанию из схемы.
+3. После обработки ключей схемы неизвестные ключи source добавляются в конец, чтобы избежать потери данных.
 
-### 4. Serialize final object to YAML
+### 4. Сериализация итогового объекта в YAML
 
-`generateYamlFromConfigData(...)` serializes the final object with:
+`generateYamlFromConfigData(...)` сериализует итоговый объект через:
 
 - `yaml.stringify(..., { indent: 2 })`
-- and returns a trimmed YAML string.
+- и возвращает обрезанную YAML-строку.
 
-### 5. Inject into Monaco editor on load
+### 5. Передача в Monaco editor при загрузке
 
-In `src/App.tsx`:
+В `src/App.tsx`:
 
-1. `editorSchema` is resolved once (`useMemo`) via `resolveSchemaForEditor(...)`.
-2. `yamlConfig` is generated once (`useMemo`) via `generateYamlFromConfigData(...)`.
-3. `yamlConfig` is passed to `YamlConfigEditor` as initial editor text.
-4. `schema={editorSchema}` is passed to Monaco YAML validation/autocomplete.
+1. `editorSchema` вычисляется один раз (`useMemo`) через `resolveSchemaForEditor(...)`.
+2. `yamlConfig` вычисляется один раз (`useMemo`) через `generateYamlFromConfigData(...)`.
+3. `yamlConfig` передается в `YamlConfigEditor` как начальный текст редактора.
+4. `schema={editorSchema}` передается в валидацию/автодополнение Monaco YAML.
 
-## Getting Started
+## Быстрый старт
 
 ```bash
 npm install
 npm run dev
 ```
 
-## Component API
+## API компонента
 
 ```tsx
 <YamlConfigEditor
   yamlConfig={rawYamlString}
   schema={jsonSchemaObject}
   theme="dark"                        // "dark" | "light"
-  backendProblems={[                  // optional server-side markers
+  backendProblems={[                  // опциональные серверные маркеры
     {
       source: "backend",
       severity: "error",
@@ -165,11 +217,12 @@ npm run dev
       startColumn: 3,
     },
   ]}
-  onSave={(changedBlocks) => { ... }} // only modified top-level blocks
-  onCancel={() => { ... }}            // optional cancel handler
+  saveFlowRunner={mySaveFlowRunner}   // опционально, последовательные обновления блоков (контракт на Promise)
+  onSave={(changedBlocks) => { ... }} // вызывается после успешного save flow
+  onCancel={() => { ... }}            // опциональный обработчик отмены
 />
 ```
 
-## License
+## Лицензия
 
 MIT
