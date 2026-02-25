@@ -30,7 +30,9 @@ export function YamlConfigEditor({
   useEffect(() => {
     yamlDisposableRef.current?.dispose();
 
-    const origRegister = monaco.languages.registerHoverProvider.bind(monaco.languages);
+    const origRegister = monaco.languages.registerHoverProvider.bind(
+      monaco.languages,
+    );
     monaco.languages.registerHoverProvider = (languageId, provider) => {
       if (languageId === "yaml" && provider.provideHover) {
         const origHover = provider.provideHover.bind(provider);
@@ -38,8 +40,13 @@ export function YamlConfigEditor({
           const result = await origHover(...args);
           if (result) {
             for (const c of result.contents) {
-              if (typeof c === "object" && "value" in c)
-                c.value = c.value.replace(/\nSource: \[.*?\]\(.*?\)\s*$/, "");
+              if (typeof c === "object" && "value" in c) {
+                const hoverContent = c as { value: string };
+                hoverContent.value = hoverContent.value.replace(
+                  /\nSource: \[.*?\]\(.*?\)\s*$/,
+                  "",
+                );
+              }
             }
           }
           return result;
@@ -86,7 +93,9 @@ export function YamlConfigEditor({
   const [isDiffOpen, setIsDiffOpen] = useState(false);
   const [diffYaml, setDiffYaml] = useState("");
   const [isSaving, setIsSaving] = useState(false);
-  const [saveBackendProblems, setSaveBackendProblems] = useState<EditorProblem[]>([]);
+  const [saveBackendProblems, setSaveBackendProblems] = useState<
+    EditorProblem[]
+  >([]);
   const [isSuccessOpen, setIsSuccessOpen] = useState(false);
 
   const allProblems = useMemo(
@@ -117,7 +126,9 @@ export function YamlConfigEditor({
     try {
       const saveResult = await runSaveFlow(changedBlocks, activeRunner);
       if (!saveResult.isSuccess) {
-        setSaveBackendProblems(mapSaveErrorsToBackendProblems(saveResult.errors));
+        setSaveBackendProblems(
+          mapSaveErrorsToBackendProblems(saveResult.errors),
+        );
         return;
       }
 
@@ -149,6 +160,7 @@ export function YamlConfigEditor({
               height="100%"
               defaultValue={defaultValue}
               path="file:///config.yaml"
+              saveViewState={false}
               language="yaml"
               theme={getMonacoTheme(theme)}
               onMount={handleEditorMount}
@@ -216,7 +228,10 @@ export function YamlConfigEditor({
         theme={theme}
         isSaving={isSaving}
       />
-      <SaveSuccessModal isOpen={isSuccessOpen} onClose={() => setIsSuccessOpen(false)} />
+      <SaveSuccessModal
+        isOpen={isSuccessOpen}
+        onClose={() => setIsSuccessOpen(false)}
+      />
     </div>
   );
 }

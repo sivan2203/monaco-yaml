@@ -18,6 +18,24 @@ const SEVERITY_MAP: Record<number, EditorProblem["severity"]> = {
   [monaco.MarkerSeverity.Hint]: "info",
 };
 
+async function collapseTopLevelYamlBlocks(
+  editor: monaco.editor.IStandaloneCodeEditor,
+  model: monaco.editor.ITextModel,
+) {
+  const lastLine = Math.max(model.getLineCount(), 1);
+
+  // foldLevel1 оставляет раскрытым блок под курсором.
+  editor.setPosition({ lineNumber: lastLine, column: 1 });
+  await editor.getAction("editor.unfoldAll")?.run();
+  await editor.getAction("editor.foldLevel1")?.run();
+
+  // Явно закрываем оба крайних top-level блока, чтобы не оставалось "исключений".
+  editor.setPosition({ lineNumber: 1, column: 1 });
+  await editor.getAction("editor.fold")?.run();
+  editor.setPosition({ lineNumber: lastLine, column: 1 });
+  await editor.getAction("editor.fold")?.run();
+}
+
 /**
  * Управляет жизненным циклом YAML-редактора: фильтрацией блоков, проблемами валидации
  * и сборкой полного YAML для сценария сохранения.
@@ -67,12 +85,23 @@ export function useYamlEditor(initialYaml: string): YamlEditorResult {
 
     editorRef.current = editor;
 
-    setTimeout(() => {
-      editor.getAction("editor.foldLevel1")?.run();
-    }, 100);
-
     const model = editor.getModel();
     if (!model) return;
+
+    let hasCollapsedOnInit = false;
+    const runInitialCollapse = () => {
+      if (hasCollapsedOnInit) return;
+      hasCollapsedOnInit = true;
+      void collapseTopLevelYamlBlocks(editor, model);
+    };
+
+    // Ждём первый layout редактора вместо таймера, затем применяем фолдинг.
+    const layoutDisposable = editor.onDidLayoutChange(() => {
+      runInitialCollapse();
+      layoutDisposable.dispose();
+    });
+    disposablesRef.current.push(layoutDisposable);
+    runInitialCollapse();
 
     /**
      * Отслеживает изменения текста: фильтрует disabled-блоки и синхронизирует sidebar.
