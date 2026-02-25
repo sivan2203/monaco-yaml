@@ -1,6 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { YamlConfigEditor, type EditorProblem, type Theme } from "./MonacoComponent";
-import { mockBlockRunner } from "./MonacoComponent/save-flow";
+import {
+  useSwitchSaveFlowRunner,
+  type UpdateOttParamsInput,
+} from "./MonacoComponent/save-flow";
 import fallbackSchema from "./MonacoComponent/editor-setup/schema.json";
 import {
   extractSchemaFromResponse,
@@ -75,8 +78,24 @@ const MOCK_CONFIG_RESPONSE: BackendConfigResponse = {
   },
 };
 
+function wait(ms: number): Promise<void> {
+  return new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
+}
+
+function useMockUpdateOttSettings() {
+  async function mutateAsync(args: UpdateOttParamsInput): Promise<void> {
+    await wait(400);
+    console.log("updateOttParams payload:", args);
+  }
+
+  return { mutateAsync };
+}
+
 function App() {
   const [theme, setTheme] = useState<Theme>("dark");
+  const { mutateAsync: updateOttParams } = useMockUpdateOttSettings();
   const editorSchema = useMemo(
     () =>
       resolveSchemaForEditor({
@@ -96,6 +115,11 @@ function App() {
       ),
     [editorSchema],
   );
+  const saveFlowRunner = useSwitchSaveFlowRunner({
+    serviceId: "demo-service",
+    env: "dev",
+    updateOttParams,
+  });
 
   useEffect(() => {
     document.documentElement.setAttribute("data-theme", theme);
@@ -127,7 +151,7 @@ function App() {
         theme={theme}
         backendProblems={MOCK_BACKEND_PROBLEMS}
         onSave={handleSave}
-        saveFlowRunner={mockBlockRunner}
+        saveFlowRunner={saveFlowRunner}
       />
     </div>
   );
