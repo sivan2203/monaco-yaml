@@ -5,29 +5,15 @@ import type {
   JsonSchemaProperty,
 } from "./config-data.interface";
 
-export const DEFAULT_KEY_ALIASES: Record<string, string> = {
-  ottParams: "ott",
-  rateLimits: "rate-limits",
-  livenessProbe: "liveness-probe",
-  readinessProbe: "readiness-probe",
-  initialDelaySeconds: "initial_delay_seconds",
-  kafkaBrokers: "kafka-brokers",
-  reflexHost: "reflex-host",
-  whitelistList: "whitelist_list",
-};
-
 /**
- * Генерирует YAML-строку из backend-данных, нормализуя ключи и
+ * Генерирует YAML-строку из backend-данных,
  * приводя структуру к шаблону JSON Schema.
  */
 export function generateYamlFromConfigData(
   input: GenerateYamlInput,
   schema: JsonSchemaObject,
 ): string {
-  const normalizedSettings = normalizeKeysDeep(input.serviceSettings, {
-    ...DEFAULT_KEY_ALIASES,
-    ...input.keyAliases,
-  });
+  const normalizedSettings = normalizeKeysDeep(input.serviceSettings);
 
   if (!isRecord(normalizedSettings)) return "";
 
@@ -111,21 +97,17 @@ function extractDefaultFromSchema(schemaProperty: JsonSchemaProperty): unknown {
 }
 
 /**
- * Рекурсивно заменяет имена ключей по карте alias.
+ * Рекурсивно клонирует структуру данных.
  * Работает для объектов любой вложенности и для элементов массивов.
  */
-function normalizeKeysDeep(
-  value: unknown,
-  keyAliases: Record<string, string>,
-): unknown {
-  if (Array.isArray(value)) return value.map((item) => normalizeKeysDeep(item, keyAliases));
+function normalizeKeysDeep(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map((item) => normalizeKeysDeep(item));
   if (!isRecord(value)) return value;
 
   const normalized: Record<string, unknown> = {};
 
   for (const [rawKey, rawValue] of Object.entries(value)) {
-    const normalizedKey = keyAliases[rawKey] ?? rawKey;
-    normalized[normalizedKey] = normalizeKeysDeep(rawValue, keyAliases);
+    normalized[rawKey] = normalizeKeysDeep(rawValue);
   }
 
   return normalized;

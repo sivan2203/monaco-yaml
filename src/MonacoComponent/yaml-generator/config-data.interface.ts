@@ -19,5 +19,4 @@ export interface BackendConfigResponse {
 
 export interface GenerateYamlInput {
   serviceSettings: Record<string, unknown>;
-  keyAliases?: Record<string, string>;
 }
