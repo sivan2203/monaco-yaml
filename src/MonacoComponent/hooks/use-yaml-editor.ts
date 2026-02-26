@@ -22,18 +22,34 @@ async function collapseTopLevelYamlBlocks(
   editor: monaco.editor.IStandaloneCodeEditor,
   model: monaco.editor.ITextModel,
 ) {
-  const lastLine = Math.max(model.getLineCount(), 1);
+  const topLevelLines = getTopLevelYamlStartLines(model);
+  if (topLevelLines.length === 0) return;
 
-  // foldLevel1 оставляет раскрытым блок под курсором.
-  editor.setPosition({ lineNumber: lastLine, column: 1 });
   await editor.getAction("editor.unfoldAll")?.run();
-  await editor.getAction("editor.foldLevel1")?.run();
 
-  // Явно закрываем оба крайних top-level блока, чтобы не оставалось "исключений".
-  editor.setPosition({ lineNumber: 1, column: 1 });
-  await editor.getAction("editor.fold")?.run();
-  editor.setPosition({ lineNumber: lastLine, column: 1 });
-  await editor.getAction("editor.fold")?.run();
+  for (const lineNumber of topLevelLines) {
+    editor.setPosition({ lineNumber, column: 1 });
+    await editor.getAction("editor.fold")?.run();
+  }
+}
+
+function getTopLevelYamlStartLines(
+  model: monaco.editor.ITextModel,
+): number[] {
+  const topLevelLines: number[] = [];
+
+  for (let lineNumber = 1; lineNumber <= model.getLineCount(); lineNumber += 1) {
+    const line = model.getLineContent(lineNumber);
+    const trimmedLine = line.trim();
+    if (!trimmedLine) continue;
+    if (trimmedLine.startsWith("#")) continue;
+    if (trimmedLine === "---" || trimmedLine === "...") continue;
+    if (/^\s/.test(line)) continue;
+    if (!/^[^#\s][^:]*:/.test(line)) continue;
+    topLevelLines.push(lineNumber);
+  }
+
+  return topLevelLines;
 }
 
 /**
