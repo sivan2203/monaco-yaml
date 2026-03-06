@@ -1,5 +1,5 @@
 import { useRef, useEffect, useState, useCallback, useMemo } from "react";
-import { YAMLMap, type Pair, isMap } from "yaml";
+import { type Pair, isMap } from "yaml";
 import { monaco } from "../editor-setup/monaco-setup";
 import {
   safeParseDocument,
@@ -52,6 +52,34 @@ function getTopLevelYamlStartLines(model: monaco.editor.ITextModel): number[] {
   }
 
   return topLevelLines;
+}
+
+function getTopLevelYamlBlockRanges(
+  model: monaco.editor.ITextModel,
+): Map<string, [number, number]> {
+  const items: Array<{ lineNumber: number; key: string }> = [];
+
+  for (let lineNumber = 1; lineNumber <= model.getLineCount(); lineNumber++) {
+    const line = model.getLineContent(lineNumber);
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith("#")) continue;
+    if (trimmed === "---" || trimmed === "...") continue;
+    if (/^\s/.test(line)) continue;
+    if (!/^[^#\s][^:]*:/.test(line)) continue;
+    const key = (line.match(/^([^:]+):/) ?? [])[1]?.trim() ?? "";
+    if (key) items.push({ lineNumber, key });
+  }
+
+  const result = new Map<string, [number, number]>();
+  for (let i = 0; i < items.length; i++) {
+    const start = items[i].lineNumber;
+    const end =
+      i + 1 < items.length
+        ? items[i + 1].lineNumber - 1
+        : model.getLineCount();
+    result.set(items[i].key, [start, end]);
+  }
+  return result;
 }
 
 /**
@@ -140,9 +168,30 @@ export function useYamlEditor(initialYaml: string): YamlEditorResult {
           parseAndFilterYaml(currentValue);
 
         if (newDisabled.length > 0) {
-          isUpdatingRef.current = true;
-          model.setValue(filtered);
-          isUpdatingRef.current = false;
+          const blockRanges = getTopLevelYamlBlockRanges(model);
+          const edits = newDisabled
+            .map((b) => {
+              const range = blockRanges.get(b.name);
+              if (!range) return null;
+              const [startLine, endLine] = range;
+              const isLast = endLine >= model.getLineCount();
+              return {
+                range: new monaco.Range(
+                  startLine,
+                  1,
+                  isLast ? endLine : endLine + 1,
+                  isLast ? model.getLineMaxColumn(endLine) : 1,
+                ),
+                text: "",
+              };
+            })
+            .filter((e) => e !== null);
+
+          if (edits.length > 0) {
+            isUpdatingRef.current = true;
+            model.applyEdits(edits);
+            isUpdatingRef.current = false;
+          }
         }
 
         const valueAfterFilter =
@@ -229,21 +278,38 @@ export function useYamlEditor(initialYaml: string): YamlEditorResult {
     const model = editor.getModel();
     if (!model) return;
 
-    const enabledBlockYaml = setEnabledInBlock(block.fullText, true);
-    const blockDoc = safeParseDocument(enabledBlockYaml);
-
-    const mainDoc = safeParseDocument(model.getValue());
-    if (!isMap(mainDoc.contents)) {
-      mainDoc.contents = new YAMLMap();
-    }
-    const blockContents = blockDoc.contents as YAMLMap;
-    for (const item of blockContents.items) {
-      (mainDoc.contents as YAMLMap).items.push(item);
-    }
+    const enabledBlockText = setEnabledInBlock(block.fullText, true).trim();
+    const lastLine = model.getLineCount();
+    const lastColumn = model.getLineMaxColumn(lastLine);
+    // Capture before edit — Monaco shifts this line down after insert
+    const lastTopLevelLine = getTopLevelYamlStartLines(model).at(-1);
 
     isUpdatingRef.current = true;
-    model.setValue(mainDoc.toString().trim());
+    model.applyEdits([{
+      range: new monaco.Range(lastLine, lastColumn, lastLine, lastColumn),
+      text: "\n" + enabledBlockText,
+    }]);
     isUpdatingRef.current = false;
+
+    // Monaco extends the last block's stored fold range to include the newly
+    // appended lines. Fix this only when the last block was actually folded:
+    // compare Y positions of consecutive lines — equal Y means the next line
+    // is hidden inside a fold (collapsed).
+    if (lastTopLevelLine !== undefined) {
+      setTimeout(() => {
+        const topN = editor.getTopForLineNumber(lastTopLevelLine);
+        const topN1 = editor.getTopForLineNumber(lastTopLevelLine + 1);
+        const isLastBlockFolded = topN === topN1;
+
+        if (isLastBlockFolded) {
+          editor.setPosition({ lineNumber: lastTopLevelLine, column: 1 });
+          void editor.getAction("editor.unfold")?.run();
+          void editor.getAction("editor.fold")?.run();
+          editor.revealLine(lastLine + 1);
+        }
+      }, 0);
+    }
+
     setDisabledBlocks((prev) => prev.filter((b) => b.name !== block.name));
   }, []);
 
