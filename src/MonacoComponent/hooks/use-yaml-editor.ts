@@ -33,12 +33,14 @@ async function collapseTopLevelYamlBlocks(
   }
 }
 
-function getTopLevelYamlStartLines(
-  model: monaco.editor.ITextModel,
-): number[] {
+function getTopLevelYamlStartLines(model: monaco.editor.ITextModel): number[] {
   const topLevelLines: number[] = [];
 
-  for (let lineNumber = 1; lineNumber <= model.getLineCount(); lineNumber += 1) {
+  for (
+    let lineNumber = 1;
+    lineNumber <= model.getLineCount();
+    lineNumber += 1
+  ) {
     const line = model.getLineContent(lineNumber);
     const trimmedLine = line.trim();
     if (!trimmedLine) continue;
@@ -66,6 +68,7 @@ export function useYamlEditor(initialYaml: string): YamlEditorResult {
   const [problems, setProblems] = useState<EditorProblem[]>([]);
   const [disabledBlocks, setDisabledBlocks] = useState<DisabledBlock[]>([]);
   const disabledBlocksRef = useRef<DisabledBlock[]>([]);
+  const [isEditorReady, setIsEditorReady] = useState(false);
 
   const { filteredYaml, initialDisabled } = useMemo(() => {
     const result = parseAndFilterYaml(initialYaml);
@@ -105,19 +108,25 @@ export function useYamlEditor(initialYaml: string): YamlEditorResult {
     if (!model) return;
 
     let hasCollapsedOnInit = false;
-    const runInitialCollapse = () => {
+    const runInitialCollapse = async () => {
       if (hasCollapsedOnInit) return;
       hasCollapsedOnInit = true;
-      void collapseTopLevelYamlBlocks(editor, model);
+      try {
+        await collapseTopLevelYamlBlocks(editor, model);
+      } finally {
+        setIsEditorReady(true);
+      }
     };
 
-    // Ждём первый layout редактора вместо таймера, затем применяем фолдинг.
+    const safetyTimer = setTimeout(() => setIsEditorReady(true), 800);
+    disposablesRef.current.push({ dispose: () => clearTimeout(safetyTimer) });
+
     const layoutDisposable = editor.onDidLayoutChange(() => {
-      runInitialCollapse();
+      void runInitialCollapse();
       layoutDisposable.dispose();
     });
     disposablesRef.current.push(layoutDisposable);
-    runInitialCollapse();
+    void runInitialCollapse();
 
     /**
      * Отслеживает изменения текста: фильтрует disabled-блоки и синхронизирует sidebar.
@@ -268,6 +277,7 @@ export function useYamlEditor(initialYaml: string): YamlEditorResult {
   return {
     defaultValue: filteredYaml,
     handleEditorMount,
+    isEditorReady,
     errorCount: problems.length,
     problems,
     disabledBlocks,

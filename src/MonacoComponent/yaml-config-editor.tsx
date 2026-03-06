@@ -81,6 +81,7 @@ export function YamlConfigEditor({
   const {
     defaultValue,
     handleEditorMount,
+    isEditorReady,
     errorCount,
     problems,
     disabledBlocks,
@@ -155,7 +156,13 @@ export function YamlConfigEditor({
       </div>
       <div className="yce-editor-area">
         <div className="yce-editor-wrapper">
-          <div className="yce-editor-panel">
+          <div
+            className="yce-editor-panel"
+            style={{
+              opacity: isEditorReady ? 1 : 0,
+              transition: "opacity 0.15s ease-in",
+            }}
+          >
             <Editor
               height="100%"
               defaultValue={defaultValue}

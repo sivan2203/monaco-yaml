@@ -24,6 +24,7 @@ export interface EditorProblem {
 export interface YamlEditorResult {
   defaultValue: string;
   handleEditorMount: OnMount;
+  isEditorReady: boolean;
   errorCount: number;
   problems: EditorProblem[];
   disabledBlocks: DisabledBlock[];
