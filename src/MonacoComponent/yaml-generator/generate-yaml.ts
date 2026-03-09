@@ -5,15 +5,28 @@ import type {
   JsonSchemaProperty,
 } from "./config-data.interface";
 
+const UFS_HIDDEN_KEYS = ["ufsParams", "ufsSession", "ott"];
+
 /**
  * Генерирует YAML-строку из backend-данных,
  * приводя структуру к шаблону JSON Schema.
+ *
+ * @param showUfsBlocks - если false (по умолчанию), блоки ufsParams и ufsSession скрыты
  */
 export function generateYamlFromConfigData(
   input: GenerateYamlInput,
   schema: JsonSchemaObject,
+  showUfsBlocks: boolean = false,
 ): string {
-  const normalizedSettings = normalizeKeysDeep(input.serviceSettings);
+  const settings = showUfsBlocks
+    ? input.serviceSettings
+    : Object.fromEntries(
+        Object.entries(input.serviceSettings).filter(
+          ([key]) => !UFS_HIDDEN_KEYS.includes(key),
+        ),
+      );
+
+  const normalizedSettings = normalizeKeysDeep(settings);
 
   if (!isRecord(normalizedSettings)) return "";
 
