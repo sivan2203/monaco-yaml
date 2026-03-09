@@ -89,7 +89,7 @@ export function YamlConfigEditor({
     getFullYaml,
     initialYaml,
     revealLine,
-  } = useYamlEditor(yamlConfig);
+  } = useYamlEditor(yamlConfig, handleSave);
 
   const [isDiffOpen, setIsDiffOpen] = useState(false);
   const [diffYaml, setDiffYaml] = useState("");

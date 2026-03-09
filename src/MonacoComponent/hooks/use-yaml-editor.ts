@@ -86,12 +86,14 @@ function getTopLevelYamlBlockRanges(
  * Управляет жизненным циклом YAML-редактора: фильтрацией блоков, проблемами валидации
  * и сборкой полного YAML для сценария сохранения.
  */
-export function useYamlEditor(initialYaml: string): YamlEditorResult {
+export function useYamlEditor(initialYaml: string, onCtrlS?: () => void): YamlEditorResult {
   const editorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null);
   const isUpdatingRef = useRef(false);
   const originalBlocksRef = useRef<Map<string, string>>(new Map());
   const debounceTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
   const disposablesRef = useRef<monaco.IDisposable[]>([]);
+  const onCtrlSRef = useRef(onCtrlS);
+  onCtrlSRef.current = onCtrlS;
 
   const [problems, setProblems] = useState<EditorProblem[]>([]);
   const [disabledBlocks, setDisabledBlocks] = useState<DisabledBlock[]>([]);
@@ -145,6 +147,15 @@ export function useYamlEditor(initialYaml: string): YamlEditorResult {
         setIsEditorReady(true);
       }
     };
+
+    editor.addAction({
+      id: "yaml-editor-save",
+      label: "Save",
+      keybindings: [monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS],
+      run: () => {
+        onCtrlSRef.current?.();
+      },
+    });
 
     const safetyTimer = setTimeout(() => setIsEditorReady(true), 800);
     disposablesRef.current.push({ dispose: () => clearTimeout(safetyTimer) });
