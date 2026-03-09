@@ -140,19 +140,26 @@
   border: 1px solid var(--border-color);
   border-radius: 6px;
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  height: 60vh;
 }
 
 .yce-unsaved-banner {
-  padding: 6px 12px;
+  padding: 6px 0;
   font-size: 13px;
-  background: var(--bg-secondary);
   color: var(--text-muted);
-  border-bottom: 1px solid var(--border-color);
+  visibility: hidden;
+}
+
+.yce-unsaved-banner--visible {
+  visibility: visible;
 }
 
 .yce-editor-wrapper {
   display: flex;
-  height: 60vh;
+  flex: 1;
+  min-height: 0;
 }
 
 .yce-editor-panel {

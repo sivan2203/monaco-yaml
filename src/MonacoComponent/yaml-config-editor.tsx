@@ -157,10 +157,10 @@ export function YamlConfigEditor({
           )}
         </span>
       </div>
+      <div className={`yce-unsaved-banner${isDirty ? " yce-unsaved-banner--visible" : ""}`}>
+        Есть несохраненные данные
+      </div>
       <div className="yce-editor-area">
-        {isDirty && (
-          <div className="yce-unsaved-banner">Есть несохраненные данные</div>
-        )}
         <div className="yce-editor-wrapper">
           <div
             className="yce-editor-panel"
