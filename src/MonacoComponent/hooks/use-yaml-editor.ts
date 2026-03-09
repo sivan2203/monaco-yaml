@@ -92,6 +92,7 @@ export function useYamlEditor(initialYaml: string, onCtrlS?: () => void): YamlEd
   const originalBlocksRef = useRef<Map<string, string>>(new Map());
   const debounceTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
   const disposablesRef = useRef<monaco.IDisposable[]>([]);
+  const initialFilteredYamlRef = useRef("");
   const onCtrlSRef = useRef(onCtrlS);
   onCtrlSRef.current = onCtrlS;
 
@@ -111,9 +112,10 @@ export function useYamlEditor(initialYaml: string, onCtrlS?: () => void): YamlEd
 
   useEffect(() => {
     originalBlocksRef.current = extractAllBlocks(initialYaml);
+    initialFilteredYamlRef.current = filteredYaml;
     setDisabledBlocks(initialDisabled);
     setIsDirty(false);
-  }, [initialYaml, initialDisabled]);
+  }, [initialYaml, initialDisabled, filteredYaml]);
 
   useEffect(() => {
     disabledBlocksRef.current = disabledBlocks;
@@ -244,6 +246,8 @@ export function useYamlEditor(initialYaml: string, onCtrlS?: () => void): YamlEd
 
           return next;
         });
+
+        setIsDirty(valueAfterFilter.trim() !== initialFilteredYamlRef.current.trim());
       }, 500);
     });
 
