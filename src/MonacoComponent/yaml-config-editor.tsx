@@ -89,6 +89,8 @@ export function YamlConfigEditor({
     getFullYaml,
     initialYaml,
     revealLine,
+    isDirty,
+    resetDirty,
   } = useYamlEditor(yamlConfig, handleSave);
 
   const [isDiffOpen, setIsDiffOpen] = useState(false);
@@ -135,6 +137,7 @@ export function YamlConfigEditor({
 
       setSaveBackendProblems([]);
       onSave?.(changedBlocks);
+      resetDirty();
       setIsDiffOpen(false);
       setIsSuccessOpen(true);
     } finally {
@@ -155,6 +158,9 @@ export function YamlConfigEditor({
         </span>
       </div>
       <div className="yce-editor-area">
+        {isDirty && (
+          <div className="yce-unsaved-banner">Есть несохраненные данные</div>
+        )}
         <div className="yce-editor-wrapper">
           <div
             className="yce-editor-panel"

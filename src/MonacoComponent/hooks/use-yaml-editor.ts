@@ -99,6 +99,7 @@ export function useYamlEditor(initialYaml: string, onCtrlS?: () => void): YamlEd
   const [disabledBlocks, setDisabledBlocks] = useState<DisabledBlock[]>([]);
   const disabledBlocksRef = useRef<DisabledBlock[]>([]);
   const [isEditorReady, setIsEditorReady] = useState(false);
+  const [isDirty, setIsDirty] = useState(false);
 
   const { filteredYaml, initialDisabled } = useMemo(() => {
     const result = parseAndFilterYaml(initialYaml);
@@ -111,6 +112,7 @@ export function useYamlEditor(initialYaml: string, onCtrlS?: () => void): YamlEd
   useEffect(() => {
     originalBlocksRef.current = extractAllBlocks(initialYaml);
     setDisabledBlocks(initialDisabled);
+    setIsDirty(false);
   }, [initialYaml, initialDisabled]);
 
   useEffect(() => {
@@ -171,6 +173,7 @@ export function useYamlEditor(initialYaml: string, onCtrlS?: () => void): YamlEd
      * Отслеживает изменения текста: фильтрует disabled-блоки и синхронизирует sidebar.
      */
     const contentDisposable = model.onDidChangeContent(() => {
+      setIsDirty(true);
       if (isUpdatingRef.current) return;
       clearTimeout(debounceTimerRef.current);
       debounceTimerRef.current = setTimeout(() => {
@@ -351,6 +354,8 @@ export function useYamlEditor(initialYaml: string, onCtrlS?: () => void): YamlEd
   /**
    * Прокручивает редактор к строке проблемы и ставит туда курсор.
    */
+  const resetDirty = useCallback(() => setIsDirty(false), []);
+
   const revealLine = useCallback((line: number) => {
     const editor = editorRef.current;
     if (!editor) return;
@@ -370,5 +375,7 @@ export function useYamlEditor(initialYaml: string, onCtrlS?: () => void): YamlEd
     getFullYaml,
     initialYaml,
     revealLine,
+    isDirty,
+    resetDirty,
   };
 }

@@ -32,6 +32,8 @@ export interface YamlEditorResult {
   getFullYaml: () => string;
   initialYaml: string;
   revealLine: (line: number) => void;
+  isDirty: boolean;
+  resetDirty: () => void;
 }
 
 export interface YamlConfigEditorProps {
