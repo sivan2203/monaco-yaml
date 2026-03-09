@@ -281,6 +281,7 @@ export function useYamlEditor(initialYaml: string): YamlEditorResult {
     const enabledBlockText = setEnabledInBlock(block.fullText, true).trim();
     const lastLine = model.getLineCount();
     const lastColumn = model.getLineMaxColumn(lastLine);
+    const newBlockLine = lastLine + 1;
     // Capture before edit — Monaco shifts this line down after insert
     const lastTopLevelLine = getTopLevelYamlStartLines(model).at(-1);
 
@@ -295,20 +296,27 @@ export function useYamlEditor(initialYaml: string): YamlEditorResult {
     // appended lines. Fix this only when the last block was actually folded:
     // compare Y positions of consecutive lines — equal Y means the next line
     // is hidden inside a fold (collapsed).
-    if (lastTopLevelLine !== undefined) {
-      setTimeout(() => {
+    setTimeout(async () => {
+      if (lastTopLevelLine !== undefined) {
         const topN = editor.getTopForLineNumber(lastTopLevelLine);
         const topN1 = editor.getTopForLineNumber(lastTopLevelLine + 1);
         const isLastBlockFolded = topN === topN1;
 
         if (isLastBlockFolded) {
           editor.setPosition({ lineNumber: lastTopLevelLine, column: 1 });
-          void editor.getAction("editor.unfold")?.run();
-          void editor.getAction("editor.fold")?.run();
-          editor.revealLine(lastLine + 1);
+          await editor.getAction("editor.unfold")?.run();
+          await editor.getAction("editor.fold")?.run();
         }
-      }, 0);
-    }
+      }
+
+      // Always unfold the newly added block
+      editor.setPosition({ lineNumber: newBlockLine, column: 1 });
+      await editor.getAction("editor.unfold")?.run();
+
+      editor.revealLine(newBlockLine);
+      editor.setPosition({ lineNumber: newBlockLine, column: 1 });
+      editor.focus();
+    }, 0);
 
     setDisabledBlocks((prev) => prev.filter((b) => b.name !== block.name));
   }, []);
