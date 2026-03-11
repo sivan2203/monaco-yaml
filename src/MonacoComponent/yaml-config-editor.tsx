@@ -195,6 +195,7 @@ export function YamlConfigEditor({
                   strings: true,
                 },
                 formatOnType: true,
+                hover: { above: false },
               }}
             />
           </div>
