@@ -223,10 +223,12 @@ export function useYamlEditor(initialYaml: string, onCtrlS?: () => void): YamlEd
 
         setDisabledBlocks((prev) => {
           let next = prev.filter(
-            (b) => !(b.reason === "deleted" && currentKeys.has(b.name)),
+            (b) => !currentKeys.has(b.name),
           );
 
           if (newDisabled.length > 0) {
+            const newNames = new Set(newDisabled.map((b) => b.name));
+            next = next.filter((b) => !newNames.has(b.name));
             next = [...next, ...newDisabled];
           }
 
