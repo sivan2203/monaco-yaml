@@ -16,6 +16,23 @@ import { getMonacoTheme } from "./types";
 import type { YamlConfigEditorProps, EditorProblem } from "./types";
 import "./styles.css";
 
+function convertYamlKeysToCamelCase(text: string): string {
+  return text.replace(
+    /^(\s*)([a-zA-Z][a-zA-Z0-9_-]*)(\s*:)/gm,
+    (_, indent, key, colon) =>
+      `${indent}${key.replace(/[_-](\w)/g, (_: string, c: string) => c.toUpperCase())}${colon}`,
+  );
+}
+
+function applyToCamelCase(
+  item: monaco.languages.CompletionItem,
+): monaco.languages.CompletionItem {
+  if (typeof item.insertText === "string") {
+    item.insertText = convertYamlKeysToCamelCase(item.insertText);
+  }
+  return item;
+}
+
 export function YamlConfigEditor({
   yamlConfig,
   schema,
@@ -55,6 +72,29 @@ export function YamlConfigEditor({
       return origRegister(languageId, provider);
     };
 
+    const origRegisterCompletion =
+      monaco.languages.registerCompletionItemProvider.bind(monaco.languages);
+    monaco.languages.registerCompletionItemProvider = (languageId, provider) => {
+      if (languageId === "yaml" && provider.provideCompletionItems) {
+        const origProvide = provider.provideCompletionItems.bind(provider);
+        provider.provideCompletionItems = async (...args) => {
+          const result = await origProvide(...args);
+          if (result && "suggestions" in result) {
+            result.suggestions = result.suggestions.map(applyToCamelCase);
+          }
+          return result;
+        };
+        if (provider.resolveCompletionItem) {
+          const origResolve = provider.resolveCompletionItem.bind(provider);
+          provider.resolveCompletionItem = async (...args) => {
+            const item = await origResolve(...args);
+            return item ? applyToCamelCase(item) : item;
+          };
+        }
+      }
+      return origRegisterCompletion(languageId, provider);
+    };
+
     yamlDisposableRef.current = configureMonacoYaml(monaco, {
       enableSchemaRequest: false,
       hover: true,
@@ -71,6 +111,7 @@ export function YamlConfigEditor({
     });
 
     monaco.languages.registerHoverProvider = origRegister;
+    monaco.languages.registerCompletionItemProvider = origRegisterCompletion;
 
     return () => {
       yamlDisposableRef.current?.dispose();

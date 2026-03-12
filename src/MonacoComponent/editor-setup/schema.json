@@ -48,9 +48,10 @@
           "default": false,
           "description": "Включать ли Dynatrace sidecar в под"
         },
-        "reflex-host": {
+        "reflex_host": {
           "type": "string",
           "format": "hostname",
+          "default": "",
           "description": "Хостнейм или адрес reflex-сервера Dynatrace",
           "examples": ["reflex.acmenet.ru", "reflex.delta.acme.ru"]
         },
@@ -58,15 +59,18 @@
           "type": "string",
           "minLength": 8,
           "maxLength": 64,
+          "default": "",
           "description": "Имя кластера в Dynatrace (обычно совпадает с Openshift проектом)"
         },
         "env_name": {
           "type": "string",
           "enum": ["acmenet", "delta", "ift", "prod", "test", "dev"],
+          "default": "delta",
           "description": "Код среды (окружения)"
         },
         "reflex_labels": {
           "type": "string",
+          "default": "",
           "description": "Дополнительные лейблы, передаваемые в Dynatrace (строка)"
         }
       },
