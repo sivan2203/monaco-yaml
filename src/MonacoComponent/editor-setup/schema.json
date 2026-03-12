@@ -1,207 +1,1237 @@
 {
-  "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "https://your-company.ru/schemas/acme-gateway-config-v1.json",
-  "title": "Acme Gateway Sidecar Configuration",
-  "description": "Конфигурация sidecar'ов и мониторинга для шлюза Citrix / API Gateway (Acme internal)",
-  "markdownDescription": "Конфигурация sidecar'ов и мониторинга для шлюза **Citrix / API Gateway** (Acme internal)\n\n### Пример полного конфига:\n\n```yaml\ncn:\n  enabled: true\n  whitelist: true\n  whitelist_list:\n    - CI1234567890-CLIENT\n\ndynatrace:\n  enabled: true\n  reflex-host: reflex.acmenet.ru\n  cluster_name: my-openshift-project\n  env_name: prod\n\nfluentbit:\n  enabled: true\n  kafka-brokers:\n    - broker1.kafka.acmenet.ru:9092\n  topic: gateway-access-logs\n  cpu:\n    limits: 200m\n  memory:\n    limits: 256Mi\n\nott:\n  params:\n    enabled: true\n    cpu:\n      limits: 100m\n    memory:\n      limits: 128Mi\n\nrate-limits:\n  enabled: false\n```\n\n> Блоки с `enabled: false` будут скрыты в редакторе и отображены в боковой панели.",
-  "type": "object",
-  "properties": {
-    "cn": {
-      "type": "object",
-      "description": "Настройки фильтрации входящих соединений по CN сертификата клиента",
-      "markdownDescription": "Настройки фильтрации входящих соединений по **CN сертификата** клиента\n\n### Пример:\n\n```yaml\ncn:\n  enabled: true\n  whitelist: true\n  whitelist_list:\n    - CI1234567890-CLIENT\n    - CI0987654321-SERVER-CLIENT\n```\n\n> При `whitelist: true` пропускаются **только** CN из списка. При `false` — блокируются только указанные.",
-      "properties": {
-        "enabled": {
-          "type": "boolean",
-          "default": false,
-          "description": "Включён ли фильтр по CN сертификата клиента"
-        },
-        "whitelist": {
-          "type": "boolean",
-          "default": false,
-          "description": "true = пропускать только из списка, false = блокировать только из списка"
-        },
-        "whitelist_list": {
-          "type": "array",
-          "title": "whitelist",
-          "description": "Список разрешённых CN сертификатов (или их частей)",
-          "items": {
-            "type": "string",
-            "pattern": "^[A-Z0-9]{10,}-(CLIENT|SERVER-CLIENT)$",
-            "description": "Ожидаемый формат: CIxxxxxxxxxx-CLIENT или CIxxxxxxxxxx-SERVER-CLIENT"
-          },
-          "minItems": 0,
-          "uniqueItems": true
-        }
-      },
-      "required": ["enabled", "whitelist"],
-      "additionalProperties": false
-    },
-
-    "dynatrace": {
-      "type": "object",
-      "description": "Настройки интеграции с Dynatrace (OneAgent / ActiveGate sidecar)",
-      "markdownDescription": "Настройки интеграции с **Dynatrace** (OneAgent / ActiveGate sidecar)\n\n### Пример:\n\n```yaml\ndynatrace:\n  enabled: true\n  reflex-host: reflex.acmenet.ru\n  cluster_name: my-openshift-project\n  env_name: prod\n  reflex_labels: team=gateway,service=api\n```\n\n> При `enabled: true` обязательны поля: `reflex-host`, `cluster_name`, `env_name`.",
-      "properties": {
-        "enabled": {
-          "type": "boolean",
-          "default": false,
-          "description": "Включать ли Dynatrace sidecar в под"
-        },
-        "reflex_host": {
-          "type": "string",
-          "format": "hostname",
-          "default": "",
-          "description": "Хостнейм или адрес reflex-сервера Dynatrace",
-          "examples": ["reflex.acmenet.ru", "reflex.delta.acme.ru"]
-        },
-        "cluster_name": {
-          "type": "string",
-          "minLength": 8,
-          "maxLength": 64,
-          "default": "",
-          "description": "Имя кластера в Dynatrace (обычно совпадает с Openshift проектом)"
-        },
-        "env_name": {
-          "type": "string",
-          "enum": ["acmenet", "delta", "ift", "prod", "test", "dev"],
-          "default": "delta",
-          "description": "Код среды (окружения)"
-        },
-        "reflex_labels": {
-          "type": "string",
-          "default": "",
-          "description": "Дополнительные лейблы, передаваемые в Dynatrace (строка)"
-        }
-      },
-      "required": ["enabled"],
-      "if": {
-        "properties": { "enabled": { "const": true } }
-      },
-      "then": {
-        "required": ["reflex-host", "cluster_name", "env_name"]
-      }
-    },
-
-    "fluentbit": {
-      "type": "object",
-      "description": "Настройки Fluent Bit sidecar для отправки логов в Kafka",
-      "markdownDescription": "Настройки **Fluent Bit** sidecar для отправки логов в **Kafka**\n\n### Пример:\n\n```yaml\nfluentbit:\n  enabled: true\n  kafka-brokers:\n    - broker1.kafka.acmenet.ru:9092\n    - broker2.kafka.acmenet.ru:9092\n  topic: gateway-access-logs\n  cpu:\n    limits: 200m\n  memory:\n    limits: 256Mi\n  liveness-probe:\n    initial_delay_seconds: 30\n  readiness-probe:\n    initial_delay_seconds: 15\n```",
-      "properties": {
-        "enabled": {
-          "type": "boolean",
-          "default": true,
-          "description": "Включён ли fluent-bit sidecar"
-        },
-        "kafka-brokers": {
-          "type": "array",
-          "description": "Список kafka-брокеров (host:port)",
-          "items": {
-            "type": "string",
-            "pattern": "^[a-z0-9.-]+\\.[a-z0-9.-]+\\.[a-z]+:[0-9]{4,5}$"
-          },
-          "minItems": 1
-        },
-        "cpu": {
-          "type": "object",
-          "properties": {
-            "limits": {
-              "type": "string",
-              "pattern": "^[0-9]+m$",
-              "description": "Лимит CPU в milliCPU"
-            }
-          }
-        },
-        "memory": {
-          "type": "object",
-          "properties": {
-            "limits": {
-              "type": "string",
-              "pattern": "^[0-9]+(Mi|Gi)$",
-              "description": "Лимит памяти (Mi или Gi)"
-            }
-          }
-        },
-        "liveness-probe": {
-          "type": "object",
-          "properties": {
-            "initial_delay_seconds": {
-              "type": "integer",
-              "minimum": 10,
-              "maximum": 300,
-              "description": "Задержка перед первой проверкой liveness"
-            }
-          }
-        },
-        "readiness-probe": {
-          "type": "object",
-          "properties": {
-            "initial_delay_seconds": {
-              "type": "integer",
-              "minimum": 10,
-              "maximum": 300
-            }
-          }
-        },
-        "topic": {
-          "type": "string",
-          "minLength": 3,
-          "maxLength": 128,
-          "description": "Имя топика в Kafka для отправки логов"
-        }
-      },
-      "required": ["enabled"]
-    },
-
-    "ott": {
-      "type": "object",
-      "description": "Настройки OTT sidecar (One-time token / short-lived token service)",
-      "markdownDescription": "Настройки **OTT** sidecar (One-time token / short-lived token service)\n\n### Пример:\n\n```yaml\nott:\n  params:\n    enabled: true\n    cpu:\n      limits: 100m\n    memory:\n      limits: 128Mi\n```",
-      "properties": {
-        "params": {
-          "type": "object",
-          "properties": {
-            "enabled": {
-              "type": "boolean",
-              "description": "Включён ли OTT sidecar"
-            },
-            "cpu": {
-              "type": "object",
-              "properties": {
-                "limits": {
-                  "type": "string",
-                  "pattern": "^[0-9]+m$"
+    "title": "ServiceSettingsSchema",
+    "type": "object",
+    "properties": {
+        "app": {
+            "title": "App",
+            "description": "Настройки приложения",
+            "default": {
+                "command": "java -jar app.jar",
+                "istio": {
+                    "limits": {
+                        "cpu": "100m",
+                        "memory": "128Mi"
+                    },
+                    "requests": {
+                        "cpu": "50m",
+                        "memory": "64Mi"
+                    },
+                    "replicas": 2
+                },
+                "vault": {
+                    "limits": {
+                        "cpu": "50m",
+                        "memory": "64Mi"
+                    },
+                    "requests": {
+                        "cpu": "25m",
+                        "memory": "32Mi"
+                    }
+                },
+                "port": 8080,
+                "probe": {
+                    "path": "/health",
+                    "port": 8080,
+                    "initial_delay_seconds": 30,
+                    "liveness_probe": {
+                        "path": "/live",
+                        "port": 8080,
+                        "initial_delay_seconds": 30
+                    },
+                    "readiness_probe": {
+                        "path": "/ready",
+                        "port": 8080,
+                        "initial_delay_seconds": 30
+                    }
+                },
+                "resources": {
+                    "initial_delay_seconds": 30,
+                    "limits": {
+                        "cpu": "1000m",
+                        "memory": "1Gi"
+                    },
+                    "requests": {
+                        "cpu": "200m",
+                        "memory": "256Mi"
+                    },
+                    "replicas": 2
                 }
-              }
             },
-            "memory": {
-              "type": "object",
-              "properties": {
-                "limits": {
-                  "type": "string",
-                  "pattern": "^[0-9]+Mi$"
+            "markdownDescription": "\n\nНастройки приложения\n\n### Пример:\n\n```yaml\n  app:\n  command: java -jar app.jar\n  port: 8080\n  istio:\n    limits:\n      cpu: 100m\n      memory: 128Mi\n    requests:\n      cpu: 50m\n      memory: 64Mi\n    replicas: 2\n  vault:\n    limits:\n      cpu: 50m\n      memory: 64Mi\n    requests:\n      cpu: 25m\n      memory: 32Mi\n  probe:\n    path: /health\n    port: 8080\n    initialDelaySeconds: 30\n    livenessProbe:\n      path: /live\n      port: 8080\n      initialDelaySeconds: 30\n    readinessProbe:\n      path: /ready\n      port: 8080\n      initialDelaySeconds: 30\n  resources:\n    limits:\n      cpu: 1000m\n      memory: 1Gi\n    requests:\n      cpu: 200m\n      memory: 256Mi\n    initialDelaySeconds: 30\n    replicas: 2  \n```\n",
+            "allOf": [
+                {
+                    "$ref": "#/definitions/AppPropertiesServiceGo"
                 }
-              }
-            }
-          }
+            ]
+        },
+        "ingress": {
+            "title": "Ingress",
+            "description": "Настройки Ingress",
+            "default": {
+                "istio": {
+                    "limits": {
+                        "cpu": "100m",
+                        "memory": "128Mi"
+                    },
+                    "requests": {
+                        "cpu": "50m",
+                        "memory": "64Mi"
+                    },
+                    "liveness_probe": {
+                        "initial_delay_seconds": 120
+                    },
+                    "readiness_probe": {
+                        "initial_delay_seconds": 120
+                    },
+                    "replicas": 2
+                },
+                "vault": {
+                    "limits": {
+                        "cpu": "50m",
+                        "memory": "64Mi"
+                    },
+                    "requests": {
+                        "cpu": "25m",
+                        "memory": "32Mi"
+                    },
+                    "liveness_probe": {
+                        "initial_delay_seconds": 120
+                    },
+                    "readiness_probe": {
+                        "initial_delay_seconds": 120
+                    }
+                }
+            },
+            "markdownDescription": "\n\nНастройки Ingress\n\n### Пример:\n```yaml\n  ingress:\n  istio:\n    limits:\n      cpu: 100m\n      memory: 128Mi\n    requests:\n      cpu: 50m\n      memory: 64Mi\n    replicas: 2\n    livenessProbe:\n      initialDelaySeconds: 120\n    readinessProbe:\n      initialDelaySeconds: 120\n  vault:\n    limits:\n      cpu: 50m\n      memory: 64Mi\n    requests:\n      cpu: 25m\n      memory: 32Mi\n    livenessProbe:\n      initialDelaySeconds: 120\n    readinessProbe:\n      initialDelaySeconds: 120  \n```\n",
+            "allOf": [
+                {
+                    "$ref": "#/definitions/ContainersPropertiesServiceGo"
+                }
+            ]
+        },
+        "egress": {
+            "title": "Egress",
+            "description": "Настройки Egress",
+            "default": {
+                "istio": {
+                    "limits": {
+                        "cpu": "100m",
+                        "memory": "128Mi"
+                    },
+                    "requests": {
+                        "cpu": "50m",
+                        "memory": "64Mi"
+                    },
+                    "liveness_probe": {
+                        "initial_delay_seconds": 120
+                    },
+                    "readiness_probe": {
+                        "initial_delay_seconds": 120
+                    },
+                    "replicas": 2
+                },
+                "vault": {
+                    "limits": {
+                        "cpu": "50m",
+                        "memory": "64Mi"
+                    },
+                    "requests": {
+                        "cpu": "25m",
+                        "memory": "32Mi"
+                    },
+                    "liveness_probe": {
+                        "initial_delay_seconds": 120
+                    },
+                    "readiness_probe": {
+                        "initial_delay_seconds": 120
+                    }
+                }
+            },
+            "markdownDescription": "\n\nНастройки Egress\n\n### Пример:\n```yaml\n  egress:\n  istio:\n    limits:\n      cpu: 100m\n      memory: 128Mi\n    requests:\n      cpu: 50m\n      memory: 64Mi\n    replicas: 2\n    livenessProbe:\n      initialDelaySeconds: 120\n    readinessProbe:\n      initialDelaySeconds: 120\n  vault:\n    limits:\n      cpu: 50m\n      memory: 64Mi\n    requests:\n      cpu: 25m\n      memory: 32Mi\n    livenessProbe:\n      initialDelaySeconds: 120\n    readinessProbe:\n      initialDelaySeconds: 120  \n```\n",
+            "allOf": [
+                {
+                    "$ref": "#/definitions/ContainersPropertiesServiceGo"
+                }
+            ]
+        },
+        "dbMigration": {
+            "title": "Dbmigration",
+            "description": "Настройки миграции БД",
+            "default": {
+                "command": "flyway migrate",
+                "limits": {
+                    "cpu": "500m",
+                    "memory": "512Mi"
+                },
+                "requests": {
+                    "cpu": "100m",
+                    "memory": "256Mi"
+                }
+            },
+            "markdownDescription": "\n\nНастройки миграции БД\n\n### Пример:\n\n```yaml\ndbMigration:\n  command: flyway migrate\n  limits:\n    cpu: 500m\n    memory: 512Mi\n  requests:\n    cpu: 100m\n    memory: 256Mi\n```\n",
+            "allOf": [
+                {
+                    "$ref": "#/definitions/DBMigration"
+                }
+            ]
+        },
+        "ottParams": {
+            "title": "Ottparams",
+            "description": "Параметры OTT",
+            "default": {
+                "limits": {
+                    "cpu": "200m",
+                    "memory": "256Mi"
+                },
+                "requests": {
+                    "cpu": "50m",
+                    "memory": "128Mi"
+                },
+                "liveness_probe": {
+                    "initial_delay_seconds": 10
+                },
+                "readiness_probe": {
+                    "initial_delay_seconds": 5
+                },
+                "mode": "strict"
+            },
+            "markdownDescription": "\n\nПараметры OTT\n\n### Пример:\n\n\n```yaml\nottParams:\n  mode: strict\n  limits:\n    cpu: 200m\n    memory: 256Mi\n  requests:\n    cpu: 50m\n    memory: 128Mi\n  livenessProbe:\n    initialDelaySeconds: 10\n  readinessProbe:\n    initialDelaySeconds: 5\n```\n",
+            "allOf": [
+                {
+                    "$ref": "#/definitions/OTTParams"
+                }
+            ]
+        },
+        "fluentbit": {
+            "title": "Fluentbit",
+            "description": "Настройки FluentBit",
+            "default": {
+                "limits": {
+                    "cpu": "200m",
+                    "memory": "256Mi"
+                },
+                "requests": {
+                    "cpu": "50m",
+                    "memory": "128Mi"
+                },
+                "liveness_probe": {
+                    "initial_delay_seconds": 10
+                },
+                "readiness_probe": {
+                    "initial_delay_seconds": 5
+                },
+                "enabled": true,
+                "topic": "app-logs",
+                "kafka_brokers": [
+                    "kafka-1:9092",
+                    "kafka-2:9092"
+                ]
+            },
+            "markdownDescription": "\n\nНастройки FluentBit\n\n### Пример:\n\n```yaml\nfluentbit:\n  enabled: true\n  topic: app-logs\n  kafkaBrokers:\n    - kafka-1:9092\n    - kafka-2:9092\n  limits:\n    cpu: 200m\n    memory: 256Mi\n  requests:\n    cpu: 50m\n    memory: 128Mi\n  livenessProbe:\n    initialDelaySeconds: 10\n  readinessProbe:\n    initialDelaySeconds: 5\n```\n",
+            "allOf": [
+                {
+                    "$ref": "#/definitions/Fluentbit"
+                }
+            ]
+        },
+        "dynatrace": {
+            "title": "Dynatrace",
+            "description": "Настройки Dynatrace",
+            "default": {
+                "enabled": true,
+                "reflex_host": {
+                    "cluster_name": "my-cluster",
+                    "env_name": "production"
+                },
+                "reflex_labels": {
+                    "agent_version": "1.2.3",
+                    "cluster": "my-cluster",
+                    "env": "prod",
+                    "project_name": "my-service"
+                }
+            },
+            "markdownDescription": "\n\nНастройки Dynatrace\n\n### Пример:\n\n```yaml\ndynatrace:\n  enabled: true\n  reflexHost:\n    clusterName: my-cluster\n    envName: production\n  reflexLabels:\n    agentVersion: 1.2.3\n    cluster: my-cluster\n    env: prod\n    projectName: my-service\n```\n",
+            "allOf": [
+                {
+                    "$ref": "#/definitions/Dynatrace"
+                }
+            ]
+        },
+        "rateLimits": {
+            "title": "Ratelimits",
+            "description": "Лимиты запросов",
+            "default": {
+                "enabled": true,
+                "rps": 100
+            },
+            "markdownDescription": "\n\nЛимиты запросов\"\n\n### Пример:\n\n\n```yaml\nrateLimits:\n  enabled: true\n  rps: 100\n```\n",
+            "allOf": [
+                {
+                    "$ref": "#/definitions/RateLimits"
+                }
+            ]
+        },
+        "cn": {
+            "title": "Cn",
+            "description": "Фильтрация по CN",
+            "default": {
+                "enabled": true,
+                "whitelist": [
+                    "CI1234567890-CLIENT",
+                    "CI0987654321-SERVER-CLIENT"
+                ]
+            },
+            "markdownDescription": "\n\nФильтрация по CN\n\n### Пример:\n\n```yaml\ncn:\n  enabled: true\n  whitelist:\n    - CI1234567890-CLIENT\n    - CI0987654321-SERVER-CLIENT\n```\n",
+            "allOf": [
+                {
+                    "$ref": "#/definitions/CN"
+                }
+            ]
+        },
+        "unimon": {
+            "title": "Unimon",
+            "description": "Настройки Unimon",
+            "default": {
+                "enabled": true,
+                "agent": {
+                    "limits": {
+                        "cpu": "500m",
+                        "memory": "512Mi"
+                    },
+                    "requests": {
+                        "cpu": "100m",
+                        "memory": "256Mi"
+                    },
+                    "liveness_probe": {
+                        "initial_delay_seconds": 10
+                    },
+                    "readiness_probe": {
+                        "initial_delay_seconds": 5
+                    },
+                    "istio": {
+                        "limits": {
+                            "cpu": "100m",
+                            "memory": "128Mi"
+                        },
+                        "requests": {
+                            "cpu": "50m",
+                            "memory": "64Mi"
+                        },
+                        "liveness_probe": {
+                            "initial_delay_seconds": 120
+                        },
+                        "readiness_probe": {
+                            "initial_delay_seconds": 120
+                        },
+                        "replicas": 1
+                    },
+                    "vault": {
+                        "limits": {
+                            "cpu": "100m",
+                            "memory": "128Mi"
+                        },
+                        "requests": {
+                            "cpu": "50m",
+                            "memory": "64Mi"
+                        },
+                        "liveness_probe": {
+                            "initial_delay_seconds": 120
+                        },
+                        "readiness_probe": {
+                            "initial_delay_seconds": 120
+                        }
+                    }
+                },
+                "sender": {
+                    "limits": {
+                        "cpu": "200m",
+                        "memory": "256Mi"
+                    },
+                    "requests": {
+                        "cpu": "50m",
+                        "memory": "128Mi"
+                    },
+                    "liveness_probe": {
+                        "initial_delay_seconds": 10
+                    },
+                    "readiness_probe": {
+                        "initial_delay_seconds": 5
+                    },
+                    "istio": {
+                        "limits": {
+                            "cpu": "100m",
+                            "memory": "128Mi"
+                        },
+                        "requests": {
+                            "cpu": "50m",
+                            "memory": "64Mi"
+                        },
+                        "liveness_probe": {
+                            "initial_delay_seconds": 120
+                        },
+                        "readiness_probe": {
+                            "initial_delay_seconds": 120
+                        },
+                        "replicas": 1
+                    },
+                    "vault": {
+                        "limits": {
+                            "cpu": "100m",
+                            "memory": "128Mi"
+                        },
+                        "requests": {
+                            "cpu": "50m",
+                            "memory": "64Mi"
+                        },
+                        "liveness_probe": {
+                            "initial_delay_seconds": 120
+                        },
+                        "readiness_probe": {
+                            "initial_delay_seconds": 120
+                        }
+                    }
+                },
+                "topic": "unimon-metrics",
+                "always_enabled": null,
+                "kafka_brokers": [
+                    "kafka-1:9092",
+                    "kafka-2:9092"
+                ]
+            },
+            "markdownDescription": "\n\nНастройки Unimon\n\n### Пример:\n\n```yaml\nunimon:\n  enabled: true\n  topic: unimon-metrics\n  kafkaBrokers:\n    - kafka-1:9092\n    - kafka-2:9092\n  agent:\n    limits:\n      cpu: 500m\n      memory: 512Mi\n    requests:\n      cpu: 100m\n      memory: 256Mi\n    livenessProbe:\n      initialDelaySeconds: 10\n    readinessProbe:\n      initialDelaySeconds: 5\n    istio:\n      limits:\n        cpu: 100m\n        memory: 128Mi\n      requests:\n        cpu: 50m\n        memory: 64Mi\n      livenessProbe:\n        initialDelaySeconds: 120\n      readinessProbe:\n        initialDelaySeconds: 120\n      replicas: 1\n    vault:\n      limits:\n        cpu: 100m\n        memory: 128Mi\n      requests:\n        cpu: 50m\n        memory: 64Mi\n      livenessProbe:\n        initialDelaySeconds: 120\n      readinessProbe:\n        initialDelaySeconds: 120\n  sender:\n    limits:\n      cpu: 200m\n      memory: 256Mi\n    requests:\n      cpu: 50m\n      memory: 128Mi\n    livenessProbe:\n      initialDelaySeconds: 10\n    readinessProbe:\n      initialDelaySeconds: 5\n    istio:\n      limits:\n        cpu: 100m\n        memory: 128Mi\n      requests:\n        cpu: 50m\n        memory: 64Mi\n      livenessProbe:\n        initialDelaySeconds: 120\n      readinessProbe:\n        initialDelaySeconds: 120\n      replicas: 1\n    vault:\n      limits:\n        cpu: 100m\n        memory: 128Mi\n      requests:\n        cpu: 50m\n        memory: 64Mi\n      livenessProbe:\n        initialDelaySeconds: 120\n      readinessProbe:\n        initialDelaySeconds: 120\n```\n",
+            "allOf": [
+                {
+                    "$ref": "#/definitions/Unimon"
+                }
+            ]
+        },
+        "ufsParams": {
+            "title": "Ufsparams",
+            "description": "Параметры UFS",
+            "markdownDescription": "\n\nПараметры UFS\n\n### Пример:\n\n\n```yaml\nufsParams:\n  limits:\n    cpu: 200m\n    memory: 256Mi\n  requests:\n    cpu: 50m\n    memory: 128Mi\n  livenessProbe:\n    initialDelaySeconds: 10\n  readinessProbe:\n    initialDelaySeconds: 5\n```\n",
+            "allOf": [
+                {
+                    "$ref": "#/definitions/SidecarSettings"
+                }
+            ]
+        },
+        "ufsSession": {
+            "title": "Ufssession",
+            "description": "Настройки UFS сессии",
+            "markdownDescription": "\n\nНастройки UFS сессии\n\n### Пример:\n\n\n```yaml\nufsSession:\n  limits:\n    cpu: 300m\n    memory: 512Mi\n  requests:\n    cpu: 100m\n    memory: 256Mi\n  livenessProbe:\n    initialDelaySeconds: 15\n  readinessProbe:\n    initialDelaySeconds: 10\n```\n",
+            "allOf": [
+                {
+                    "$ref": "#/definitions/SidecarSettings"
+                }
+            ]
+        },
+        "unionAudit": {
+            "title": "Unionaudit",
+            "description": "Аудит Union",
+            "default": {
+                "enabled": true,
+                "kafka_brokers": [
+                    "kafka-1:9092",
+                    "kafka-2:9092"
+                ]
+            },
+            "markdownDescription": "\n\nАудит Union\n\n### Пример:\n\n```yaml\nunionAudit:\n  enabled: true\n  kafkaBrokers:\n    - kafka-1:9092\n    - kafka-2:9092\n```\n",
+            "allOf": [
+                {
+                    "$ref": "#/definitions/UnionAudit"
+                }
+            ]
         }
-      }
     },
-
-    "rate-limits": {
-      "type": "object",
-      "description": "Настройки ограничения скорости запросов (rate limiting)",
-      "markdownDescription": "Настройки ограничения скорости запросов (**rate limiting**)\n\n### Пример:\n\n```yaml\nrate-limits:\n  enabled: true\n```",
-      "properties": {
-        "enabled": {
-          "type": "boolean",
-          "default": false,
-          "description": "Включён ли модуль rate limiting"
+    "definitions": {
+        "PerformanceSettingsServiceGo": {
+            "title": "PerformanceSettingsServiceGo",
+            "type": "object",
+            "properties": {
+                "cpu": {
+                    "title": "Cpu",
+                    "type": "string"
+                },
+                "memory": {
+                    "title": "Memory",
+                    "type": "string"
+                }
+            },
+            "required": [
+                "cpu",
+                "memory"
+            ]
+        },
+        "IstioAppResourcesServiceGo": {
+            "title": "IstioAppResourcesServiceGo",
+            "type": "object",
+            "properties": {
+                "limits": {
+                    "$ref": "#/definitions/PerformanceSettingsServiceGo"
+                },
+                "requests": {
+                    "$ref": "#/definitions/PerformanceSettingsServiceGo"
+                },
+                "replicas": {
+                    "title": "Replicas",
+                    "type": "integer"
+                }
+            },
+            "required": [
+                "limits",
+                "requests"
+            ]
+        },
+        "VaultContainerResourcesServiceGo": {
+            "title": "VaultContainerResourcesServiceGo",
+            "type": "object",
+            "properties": {
+                "limits": {
+                    "$ref": "#/definitions/PerformanceSettingsServiceGo"
+                },
+                "requests": {
+                    "$ref": "#/definitions/PerformanceSettingsServiceGo"
+                }
+            },
+            "required": [
+                "limits",
+                "requests"
+            ]
+        },
+        "ProbeServiceGo": {
+            "title": "ProbeServiceGo",
+            "type": "object",
+            "properties": {
+                "path": {
+                    "title": "Path",
+                    "type": "string"
+                },
+                "port": {
+                    "title": "Port",
+                    "type": "integer"
+                },
+                "initialDelaySeconds": {
+                    "title": "Initialdelayseconds",
+                    "type": "integer"
+                }
+            }
+        },
+        "ProbePropertiesServiceGo": {
+            "title": "ProbePropertiesServiceGo",
+            "type": "object",
+            "properties": {
+                "path": {
+                    "title": "Path",
+                    "type": "string"
+                },
+                "port": {
+                    "title": "Port",
+                    "type": "integer"
+                },
+                "initialDelaySeconds": {
+                    "title": "Initialdelayseconds",
+                    "type": "integer"
+                },
+                "livenessProbe": {
+                    "$ref": "#/definitions/ProbeServiceGo"
+                },
+                "readinessProbe": {
+                    "$ref": "#/definitions/ProbeServiceGo"
+                }
+            }
+        },
+        "AppResourcesServiceGo": {
+            "title": "AppResourcesServiceGo",
+            "type": "object",
+            "properties": {
+                "initialDelaySeconds": {
+                    "title": "Initialdelayseconds",
+                    "default": 120,
+                    "type": "integer"
+                },
+                "limits": {
+                    "$ref": "#/definitions/PerformanceSettingsServiceGo"
+                },
+                "requests": {
+                    "$ref": "#/definitions/PerformanceSettingsServiceGo"
+                },
+                "replicas": {
+                    "title": "Replicas",
+                    "type": "integer"
+                }
+            },
+            "required": [
+                "limits",
+                "requests",
+                "replicas"
+            ]
+        },
+        "AppPropertiesServiceGo": {
+            "title": "AppPropertiesServiceGo",
+            "type": "object",
+            "properties": {
+                "command": {
+                    "title": "Command",
+                    "type": "string"
+                },
+                "istio": {
+                    "$ref": "#/definitions/IstioAppResourcesServiceGo"
+                },
+                "vault": {
+                    "$ref": "#/definitions/VaultContainerResourcesServiceGo"
+                },
+                "port": {
+                    "title": "Port",
+                    "type": "integer"
+                },
+                "probe": {
+                    "$ref": "#/definitions/ProbePropertiesServiceGo"
+                },
+                "resources": {
+                    "$ref": "#/definitions/AppResourcesServiceGo"
+                }
+            },
+            "required": [
+                "istio",
+                "vault",
+                "probe",
+                "resources"
+            ]
+        },
+        "ProbeSettings": {
+            "title": "ProbeSettings",
+            "type": "object",
+            "properties": {
+                "initialDelaySeconds": {
+                    "title": "Initialdelayseconds",
+                    "type": "integer"
+                }
+            },
+            "required": [
+                "initialDelaySeconds"
+            ]
+        },
+        "IstioContainerResourcesServiceGo": {
+            "title": "IstioContainerResourcesServiceGo",
+            "type": "object",
+            "properties": {
+                "limits": {
+                    "$ref": "#/definitions/PerformanceSettingsServiceGo"
+                },
+                "requests": {
+                    "$ref": "#/definitions/PerformanceSettingsServiceGo"
+                },
+                "livenessProbe": {
+                    "title": "Livenessprobe",
+                    "default": {
+                        "initial_delay_seconds": 120
+                    },
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/ProbeSettings"
+                        }
+                    ]
+                },
+                "readinessProbe": {
+                    "title": "Readinessprobe",
+                    "default": {
+                        "initial_delay_seconds": 120
+                    },
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/ProbeSettings"
+                        }
+                    ]
+                },
+                "replicas": {
+                    "title": "Replicas",
+                    "type": "integer"
+                }
+            },
+            "required": [
+                "limits",
+                "requests",
+                "replicas"
+            ]
+        },
+        "VaultContainerResourcesFull": {
+            "title": "VaultContainerResourcesFull",
+            "type": "object",
+            "properties": {
+                "limits": {
+                    "$ref": "#/definitions/PerformanceSettingsServiceGo"
+                },
+                "requests": {
+                    "$ref": "#/definitions/PerformanceSettingsServiceGo"
+                },
+                "livenessProbe": {
+                    "title": "Livenessprobe",
+                    "default": {
+                        "initial_delay_seconds": 120
+                    },
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/ProbeSettings"
+                        }
+                    ]
+                },
+                "readinessProbe": {
+                    "title": "Readinessprobe",
+                    "default": {
+                        "initial_delay_seconds": 120
+                    },
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/ProbeSettings"
+                        }
+                    ]
+                }
+            },
+            "required": [
+                "limits",
+                "requests"
+            ]
+        },
+        "ContainersPropertiesServiceGo": {
+            "title": "ContainersPropertiesServiceGo",
+            "type": "object",
+            "properties": {
+                "istio": {
+                    "$ref": "#/definitions/IstioContainerResourcesServiceGo"
+                },
+                "vault": {
+                    "$ref": "#/definitions/VaultContainerResourcesFull"
+                }
+            },
+            "required": [
+                "istio",
+                "vault"
+            ]
+        },
+        "PerformanceSettings": {
+            "title": "PerformanceSettings",
+            "type": "object",
+            "properties": {
+                "cpu": {
+                    "title": "Cpu",
+                    "type": "string"
+                },
+                "memory": {
+                    "title": "Memory",
+                    "type": "string"
+                }
+            },
+            "required": [
+                "cpu",
+                "memory"
+            ]
+        },
+        "DBMigration": {
+            "title": "DBMigration",
+            "type": "object",
+            "properties": {
+                "command": {
+                    "title": "Command",
+                    "type": "string"
+                },
+                "limits": {
+                    "$ref": "#/definitions/PerformanceSettings"
+                },
+                "requests": {
+                    "$ref": "#/definitions/PerformanceSettings"
+                }
+            },
+            "required": [
+                "command",
+                "limits",
+                "requests"
+            ]
+        },
+        "OTTParams": {
+            "title": "OTTParams",
+            "type": "object",
+            "properties": {
+                "limits": {
+                    "title": "Limits",
+                    "description": "Значения Limits в Namespace",
+                    "markdownDescription": "\n\nЗначения Limits в Namespace\n\n### Пример:\n\n```yaml\nlimits:\n  cpu: 200m\n  memory: 500M\n",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/PerformanceSettings"
+                        }
+                    ]
+                },
+                "requests": {
+                    "title": "Requests",
+                    "description": "Значения Requests в Namespace",
+                    "markdownDescription": "\n\nЗначения Requests в Namespace\n\n### Пример:\n\n```yaml\nrequests:\n  cpu: 150m\n  memory: 250M\n```\n",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/PerformanceSettings"
+                        }
+                    ]
+                },
+                "livenessProbe": {
+                    "title": "Livenessprobe",
+                    "description": "Параметры Liveness Probe в Namespace",
+                    "markdownDescription": "\n\nПараметры Liveness Probe в Namespace\n\n### Пример:\n\n```yaml\nlivenessProbe:\n  initialDelaySeconds: 120\n```\n\n",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/ProbeSettings"
+                        }
+                    ]
+                },
+                "readinessProbe": {
+                    "title": "Readinessprobe",
+                    "description": "Параметры Readiness Probe в Namespace",
+                    "markdownDescription": "\n\nПараметры Readiness Probe в Namespace\n\n### Пример:\n\n```yaml\nreadinessProbe:\n  initialDelaySeconds: 120\n```\n",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/ProbeSettings"
+                        }
+                    ]
+                },
+                "mode": {
+                    "title": "Mode",
+                    "type": "string"
+                }
+            },
+            "required": [
+                "limits",
+                "requests",
+                "livenessProbe",
+                "readinessProbe",
+                "mode"
+            ]
+        },
+        "Fluentbit": {
+            "title": "Fluentbit",
+            "type": "object",
+            "properties": {
+                "limits": {
+                    "title": "Limits",
+                    "description": "Значения Limits в Namespace",
+                    "markdownDescription": "\n\nЗначения Limits в Namespace\n\n### Пример:\n\n```yaml\nlimits:\n  cpu: 200m\n  memory: 500M\n",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/PerformanceSettings"
+                        }
+                    ]
+                },
+                "requests": {
+                    "title": "Requests",
+                    "description": "Значения Requests в Namespace",
+                    "markdownDescription": "\n\nЗначения Requests в Namespace\n\n### Пример:\n\n```yaml\nrequests:\n  cpu: 150m\n  memory: 250M\n```\n",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/PerformanceSettings"
+                        }
+                    ]
+                },
+                "livenessProbe": {
+                    "title": "Livenessprobe",
+                    "description": "Параметры Liveness Probe в Namespace",
+                    "markdownDescription": "\n\nПараметры Liveness Probe в Namespace\n\n### Пример:\n\n```yaml\nlivenessProbe:\n  initialDelaySeconds: 120\n```\n\n",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/ProbeSettings"
+                        }
+                    ]
+                },
+                "readinessProbe": {
+                    "title": "Readinessprobe",
+                    "description": "Параметры Readiness Probe в Namespace",
+                    "markdownDescription": "\n\nПараметры Readiness Probe в Namespace\n\n### Пример:\n\n```yaml\nreadinessProbe:\n  initialDelaySeconds: 120\n```\n",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/ProbeSettings"
+                        }
+                    ]
+                },
+                "enabled": {
+                    "title": "Enabled",
+                    "type": "boolean"
+                },
+                "topic": {
+                    "title": "Topic",
+                    "type": "string"
+                },
+                "kafkaBrokers": {
+                    "title": "Kafkabrokers",
+                    "description": "Список kafka brokers",
+                    "default": [],
+                    "markdownDescription": "\n\nСписок kafka brokers\n\n### Пример:\n\n```yaml\n  kafkaBrokers:\n  - kafka-1:9092\n  - kafka-2:9092  \n```\n",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            },
+            "required": [
+                "limits",
+                "requests",
+                "livenessProbe",
+                "readinessProbe",
+                "enabled",
+                "topic"
+            ]
+        },
+        "DynatraceHost": {
+            "title": "DynatraceHost",
+            "type": "object",
+            "properties": {
+                "cluster_name": {
+                    "title": "Cluster Name",
+                    "type": "string"
+                },
+                "env_name": {
+                    "title": "Env Name",
+                    "type": "string"
+                }
+            }
+        },
+        "DynatraceLabels": {
+            "title": "DynatraceLabels",
+            "type": "object",
+            "properties": {
+                "agent_version": {
+                    "title": "Agent Version",
+                    "type": "string"
+                },
+                "cluster": {
+                    "title": "Cluster",
+                    "type": "string"
+                },
+                "env": {
+                    "title": "Env",
+                    "type": "string"
+                },
+                "project_name": {
+                    "title": "Project Name",
+                    "type": "string"
+                }
+            },
+            "required": [
+                "agent_version",
+                "cluster",
+                "env",
+                "project_name"
+            ]
+        },
+        "Dynatrace": {
+            "title": "Dynatrace",
+            "type": "object",
+            "properties": {
+                "enabled": {
+                    "title": "Enabled",
+                    "default": false,
+                    "type": "boolean"
+                },
+                "reflex_host": {
+                    "title": "Reflex Host",
+                    "default": {
+                        "cluster_name": "my-cluster",
+                        "env_name": "production"
+                    },
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/DynatraceHost"
+                        }
+                    ]
+                },
+                "reflex_labels": {
+                    "title": "Reflex Labels",
+                    "default": {
+                        "agent_version": "1.2.3",
+                        "cluster": "my-cluster",
+                        "env": "prod",
+                        "project_name": "my-service"
+                    },
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/DynatraceLabels"
+                        }
+                    ]
+                }
+            }
+        },
+        "RateLimits": {
+            "title": "RateLimits",
+            "type": "object",
+            "properties": {
+                "enabled": {
+                    "title": "Enabled",
+                    "type": "boolean"
+                },
+                "rps": {
+                    "title": "Rps",
+                    "type": "integer"
+                }
+            }
+        },
+        "CN": {
+            "title": "CN",
+            "type": "object",
+            "properties": {
+                "enabled": {
+                    "title": "Enabled",
+                    "default": false,
+                    "type": "boolean"
+                },
+                "whitelist": {
+                    "title": "Whitelist",
+                    "default": [],
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
+        "SidecarIstioSettings": {
+            "title": "SidecarIstioSettings",
+            "type": "object",
+            "properties": {
+                "limits": {
+                    "title": "Limits",
+                    "description": "Значения Limits в Namespace",
+                    "markdownDescription": "\n\nЗначения Limits в Namespace\n\n### Пример:\n\n```yaml\nlimits:\n  cpu: 200m\n  memory: 500M\n",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/PerformanceSettings"
+                        }
+                    ]
+                },
+                "requests": {
+                    "title": "Requests",
+                    "description": "Значения Requests в Namespace",
+                    "markdownDescription": "\n\nЗначения Requests в Namespace\n\n### Пример:\n\n```yaml\nrequests:\n  cpu: 150m\n  memory: 250M\n```\n",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/PerformanceSettings"
+                        }
+                    ]
+                },
+                "livenessProbe": {
+                    "title": "Livenessprobe",
+                    "description": "Параметры Liveness Probe в Namespace",
+                    "markdownDescription": "\n\nПараметры Liveness Probe в Namespace\n\n### Пример:\n\n```yaml\nlivenessProbe:\n  initialDelaySeconds: 120\n```\n\n",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/ProbeSettings"
+                        }
+                    ]
+                },
+                "readinessProbe": {
+                    "title": "Readinessprobe",
+                    "description": "Параметры Readiness Probe в Namespace",
+                    "markdownDescription": "\n\nПараметры Readiness Probe в Namespace\n\n### Пример:\n\n```yaml\nreadinessProbe:\n  initialDelaySeconds: 120\n```\n",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/ProbeSettings"
+                        }
+                    ]
+                },
+                "replicas": {
+                    "title": "Replicas",
+                    "type": "integer"
+                }
+            },
+            "required": [
+                "limits",
+                "requests",
+                "livenessProbe",
+                "readinessProbe"
+            ]
+        },
+        "SidecarSettings": {
+            "title": "SidecarSettings",
+            "type": "object",
+            "properties": {
+                "limits": {
+                    "title": "Limits",
+                    "description": "Значения Limits в Namespace",
+                    "markdownDescription": "\n\nЗначения Limits в Namespace\n\n### Пример:\n\n```yaml\nlimits:\n  cpu: 200m\n  memory: 500M\n",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/PerformanceSettings"
+                        }
+                    ]
+                },
+                "requests": {
+                    "title": "Requests",
+                    "description": "Значения Requests в Namespace",
+                    "markdownDescription": "\n\nЗначения Requests в Namespace\n\n### Пример:\n\n```yaml\nrequests:\n  cpu: 150m\n  memory: 250M\n```\n",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/PerformanceSettings"
+                        }
+                    ]
+                },
+                "livenessProbe": {
+                    "title": "Livenessprobe",
+                    "description": "Параметры Liveness Probe в Namespace",
+                    "markdownDescription": "\n\nПараметры Liveness Probe в Namespace\n\n### Пример:\n\n```yaml\nlivenessProbe:\n  initialDelaySeconds: 120\n```\n\n",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/ProbeSettings"
+                        }
+                    ]
+                },
+                "readinessProbe": {
+                    "title": "Readinessprobe",
+                    "description": "Параметры Readiness Probe в Namespace",
+                    "markdownDescription": "\n\nПараметры Readiness Probe в Namespace\n\n### Пример:\n\n```yaml\nreadinessProbe:\n  initialDelaySeconds: 120\n```\n",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/ProbeSettings"
+                        }
+                    ]
+                }
+            },
+            "required": [
+                "limits",
+                "requests",
+                "livenessProbe",
+                "readinessProbe"
+            ]
+        },
+        "UnimonParams": {
+            "title": "UnimonParams",
+            "type": "object",
+            "properties": {
+                "limits": {
+                    "title": "Limits",
+                    "description": "Значения Limits в Namespace",
+                    "markdownDescription": "\n\nЗначения Limits в Namespace\n\n### Пример:\n\n```yaml\nlimits:\n  cpu: 200m\n  memory: 500M\n",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/PerformanceSettings"
+                        }
+                    ]
+                },
+                "requests": {
+                    "title": "Requests",
+                    "description": "Значения Requests в Namespace",
+                    "markdownDescription": "\n\nЗначения Requests в Namespace\n\n### Пример:\n\n```yaml\nrequests:\n  cpu: 150m\n  memory: 250M\n```\n",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/PerformanceSettings"
+                        }
+                    ]
+                },
+                "livenessProbe": {
+                    "title": "Livenessprobe",
+                    "description": "Параметры Liveness Probe в Namespace",
+                    "markdownDescription": "\n\nПараметры Liveness Probe в Namespace\n\n### Пример:\n\n```yaml\nlivenessProbe:\n  initialDelaySeconds: 120\n```\n\n",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/ProbeSettings"
+                        }
+                    ]
+                },
+                "readinessProbe": {
+                    "title": "Readinessprobe",
+                    "description": "Параметры Readiness Probe в Namespace",
+                    "markdownDescription": "\n\nПараметры Readiness Probe в Namespace\n\n### Пример:\n\n```yaml\nreadinessProbe:\n  initialDelaySeconds: 120\n```\n",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/ProbeSettings"
+                        }
+                    ]
+                },
+                "istio": {
+                    "title": "Istio",
+                    "description": "Блок настройки istio-proxy sidecar",
+                    "markdownDescription": "\n\nБлок настройки istio-proxy sidecar\n\n### Пример:\n\n```yaml\nistio:\n  limits:\n    cpu: 100m\n    memory: 128Mi\n  requests:\n    cpu: 50m\n    memory: 64Mi\n  livenessProbe:\n    initialDelaySeconds: 120\n  readinessProbe:\n    initialDelaySeconds: 120\n  replicas: 1\n```\n",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/SidecarIstioSettings"
+                        }
+                    ]
+                },
+                "vault": {
+                    "title": "Vault",
+                    "description": "Блок настройки vault-agent sidecar",
+                    "markdownDescription": "\n\nБлок настройки vault-agent sidecar\n\n### Пример:\n\n```yaml\nvault:\n  limits:\n    cpu: 100m\n    memory: 128Mi\n  requests:\n    cpu: 50m\n    memory: 64Mi\n  livenessProbe:\n    initialDelaySeconds: 120\n  readinessProbe:\n    initialDelaySeconds: 120\n```\n",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/SidecarSettings"
+                        }
+                    ]
+                }
+            },
+            "required": [
+                "limits",
+                "requests",
+                "livenessProbe",
+                "readinessProbe",
+                "istio",
+                "vault"
+            ]
+        },
+        "Unimon": {
+            "title": "Unimon",
+            "type": "object",
+            "properties": {
+                "enabled": {
+                    "title": "Enabled",
+                    "type": "boolean"
+                },
+                "agent": {
+                    "$ref": "#/definitions/UnimonParams"
+                },
+                "sender": {
+                    "$ref": "#/definitions/UnimonParams"
+                },
+                "topic": {
+                    "title": "Topic",
+                    "default": "",
+                    "type": "string"
+                },
+                "always_enabled": {
+                    "title": "Always Enabled",
+                    "type": "boolean"
+                },
+                "kafka_brokers": {
+                    "title": "Kafka Brokers",
+                    "description": "Список kafka brokers",
+                    "default": [],
+                    "markdownDescription": "\n\nСписок kafka brokers\n\n### Пример:\n\n```yaml\n  kafkaBrokers:\n  - kafka-1:9092\n  - kafka-2:9092  \n```\n",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            },
+            "required": [
+                "enabled",
+                "agent",
+                "sender"
+            ]
+        },
+        "UnionAudit": {
+            "title": "UnionAudit",
+            "type": "object",
+            "properties": {
+                "enabled": {
+                    "title": "Enabled",
+                    "type": "boolean"
+                },
+                "kafka_brokers": {
+                    "title": "Kafka Brokers",
+                    "description": "Список kafka brokers",
+                    "default": [],
+                    "markdownDescription": "\n\nСписок kafka brokers\n\n### Пример:\n\n```yaml\n  kafkaBrokers:\n  - kafka-1:9092\n  - kafka-2:9092  \n```\n",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            },
+            "required": [
+                "enabled"
+            ]
         }
-      }
     }
-  },
-
-  "additionalProperties": true,
-  "required": []
 }

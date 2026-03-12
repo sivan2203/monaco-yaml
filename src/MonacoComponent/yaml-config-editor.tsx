@@ -18,9 +18,11 @@ import "./styles.css";
 
 function convertYamlKeysToCamelCase(text: string): string {
   return text.replace(
-    /^(\s*)([a-zA-Z][a-zA-Z0-9_-]*)(\s*:)/gm,
-    (_, indent, key, colon) =>
-      `${indent}${key.replace(/[_-](\w)/g, (_: string, c: string) => c.toUpperCase())}${colon}`,
+    /^(\s*)(\$\{\d+:)?([a-zA-Z][a-zA-Z0-9_-]*)(\})?(\s*:)/gm,
+    (_, indent, snippetPrefix, key, snippetSuffix, colon) => {
+      const camelKey = key.replace(/[_-](\w)/g, (_: string, c: string) => c.toUpperCase());
+      return `${indent}${snippetPrefix ?? ""}${camelKey}${snippetSuffix ?? ""}${colon}`;
+    },
   );
 }
 

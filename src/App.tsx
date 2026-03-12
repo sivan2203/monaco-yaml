@@ -17,66 +17,223 @@ import "./App.css";
 const MOCK_BACKEND_PROBLEMS: EditorProblem[] = [];
 
 const MOCK_CONFIG_RESPONSE: BackendConfigResponse = {
-  data: {
-    serviceSettings: {
-      cn: {
-        enabled: false,
-        whitelist: true,
-        whitelistList: [
-          "CI03194394-CI041129-CLIENT",
-          "CI0198749-CI017697072-SERVER-CLIENT",
-          "CI03194394-CI041130-CLIENT",
-        ],
-      },
-      dynatrace: {
-        enabled: true,
-        reflexHost: "reflex.acmenet.ru",
-        cluster_name: "IFT_TERRA00024_EDM_OPENSIFT_DELTA",
-        env_name: "acmenet",
-        reflex_labels: "team=gateway,service=api",
-      },
-      fluentbit: {
-        enabled: true,
-        kafkaBrokers: ["tvldgaudi0003.delta.acme.ru:9093"],
-        cpu: {
-          limits: "101m",
-        },
-        memory: {
-          limits: "512Mi",
-        },
-        livenessProbe: {
-          initialDelaySeconds: 120,
-        },
-        readinessProbe: {
-          initialDelaySeconds: 120,
-        },
-        requests: {
-          cpu: "5m",
-          memory: "256Mi",
-        },
-        topic: "topic123",
-      },
-      ott: {
-        params: {
-          enabled: true,
-          cpu: {
-            limits: "350m",
+  "data": {
+      "serviceSettings": {
+          "cn": {
+              "enabled": true,
+              "whitelist": []
           },
-          memory: {
-            limits: "701Mi",
+          "fluentbit": {
+              "kafkaBrokers": [
+                  "sgsdgd:9093",
+                  "teeatat:9093"
+              ],
+              "enabled": true,
+              "topic": "test",
+              "requests": {
+                  "cpu": "50m",
+                  "memory": "256M"
+              },
+              "limits": {
+                  "cpu": "100m",
+                  "memory": "512M"
+              },
+              "livenessProbe": {
+                  "initialDelaySeconds": 120
+              },
+              "readinessProbe": {
+                  "initialDelaySeconds": 120
+              }
           },
-        },
-      },
-      "rate-limits": {
-        enabled: false,
-      },
-      union: {
-        enabled: true,
-        replicas: 1,
-      },
-    },
-  },
-};
+          "unimon": {
+              "enabled": false,
+              "topic": "test",
+              "agent": {
+                  "limits": {
+                      "cpu": "200m",
+                      "memory": "500M"
+                  },
+                  "requests": {
+                      "cpu": "150m",
+                      "memory": "250M"
+                  },
+                  "istio": {
+                      "limits": {
+                          "cpu": "100m",
+                          "memory": "128M"
+                      },
+                      "requests": {
+                          "cpu": "50m",
+                          "memory": "64M"
+                      },
+                      "livenessProbe": {
+                          "initialDelaySeconds": 120
+                      },
+                      "readinessProbe": {
+                          "initialDelaySeconds": 120
+                      },
+                      "replicas": 1
+                  },
+                  "vault": {
+                      "limits": {
+                          "cpu": "100m",
+                          "memory": "128M"
+                      },
+                      "requests": {
+                          "cpu": "50m",
+                          "memory": "64M"
+                      },
+                      "livenessProbe": {
+                          "initialDelaySeconds": 120
+                      },
+                      "readinessProbe": {
+                          "initialDelaySeconds": 120
+                      }
+                  },
+                  "livenessProbe": {
+                      "initialDelaySeconds": 120
+                  },
+                  "readinessProbe": {
+                      "initialDelaySeconds": 120
+                  }
+              },
+              "sender": {
+                  "limits": {
+                      "cpu": "300m",
+                      "memory": "1500M"
+                  },
+                  "requests": {
+                      "cpu": "150m",
+                      "memory": "1500M"
+                  },
+                  "istio": {
+                      "limits": {
+                          "cpu": "100m",
+                          "memory": "128M"
+                      },
+                      "requests": {
+                          "cpu": "50m",
+                          "memory": "64M"
+                      },
+                      "livenessProbe": {
+                          "initialDelaySeconds": 120
+                      },
+                      "readinessProbe": {
+                          "initialDelaySeconds": 120
+                      },
+                      "replicas": 1
+                  },
+                  "vault": {
+                      "limits": {
+                          "cpu": "100m",
+                          "memory": "128M"
+                      },
+                      "requests": {
+                          "cpu": "50m",
+                          "memory": "64M"
+                      },
+                      "livenessProbe": {
+                          "initialDelaySeconds": 120
+                      },
+                      "readinessProbe": {
+                          "initialDelaySeconds": 120
+                      }
+                  },
+                  "livenessProbe": {
+                      "initialDelaySeconds": 120
+                  },
+                  "readinessProbe": {
+                      "initialDelaySeconds": 120
+                  }
+              }
+          },
+          "ufsParams": {
+              "requests": {
+                  "cpu": "500m",
+                  "memory": "800M"
+              },
+              "limits": {
+                  "cpu": "500m",
+                  "memory": "800M"
+              },
+              "livenessProbe": {
+                  "initialDelaySeconds": 120
+              },
+              "readinessProbe": {
+                  "initialDelaySeconds": 120
+              }
+          },
+          "ufsSession": {
+              "limits": {
+                  "cpu": "600m",
+                  "memory": "1500M"
+              },
+              "requests": {
+                  "cpu": "300m",
+                  "memory": "1500M"
+              },
+              "livenessProbe": {
+                  "initialDelaySeconds": 120
+              },
+              "readinessProbe": {
+                  "initialDelaySeconds": 120
+              }
+          },
+          "ottParams": {
+              "mode": "observe_provider_authz_local_pdp",
+              "limits": {
+                  "cpu": "200m",
+                  "memory": "300Mi"
+              },
+              "requests": {
+                  "cpu": "200m",
+                  "memory": "300Mi"
+              },
+              "livenessProbe": {
+                  "initialDelaySeconds": 120
+              },
+              "readinessProbe": {
+                  "initialDelaySeconds": 120
+              }
+          },
+          "rateLimits": {
+              "enabled": false,
+              "rps": 2
+          },
+          "app": null,
+          "egress": null,
+          "ingress": null,
+          "dbMigration": {
+              "command": "yoyo apply --database $DB_URL migrations_dir",
+              "limits": {
+                  "cpu": "200m",
+                  "memory": "200M"
+              },
+              "requests": {
+                  "cpu": "100m",
+                  "memory": "100M"
+              }
+          },
+          "dynatrace": {
+              "enabled": false,
+              "reflexHost": {
+                  "clusterName": "",
+                  "envName": ""
+              },
+              "reflexLabels": {
+                  "agentVersion": "",
+                  "cluster": "",
+                  "env": "",
+                  "projectName": ""
+              }
+          },
+          "unionAudit": {
+              "enabled": true,
+              "kafkaBrokers": null
+          }
+      }
+  }
+}
 
 function wait(ms: number): Promise<void> {
   return new Promise((resolve) => {
