@@ -231,13 +231,22 @@ export function useYamlEditor(initialYaml: string, schema: Record<string, unknow
               (blockContent as Record<string, unknown>).enabled === true;
             if (!isStub) continue;
 
-            const schemaProp = schemaProps[blockName];
-            if (!schemaProp) continue;
-            const defaults = extractDefaultFromSchema(schemaProp);
-            if (!defaults || typeof defaults !== "object") continue;
+            const existingDisabled = disabledBlocksRef.current.find((b) => b.name === blockName);
+            let replacementYaml: string;
 
-            const merged = { ...(defaults as Record<string, unknown>), enabled: true };
-            const replacementYaml = convertYamlKeysToCamelCase(stringify({ [blockName]: merged }, { indent: 2 }).trim());
+            if (existingDisabled) {
+              replacementYaml = convertYamlKeysToCamelCase(
+                setEnabledInBlock(existingDisabled.fullText, true).trim()
+              );
+            } else {
+              const schemaProp = schemaProps[blockName];
+              if (!schemaProp) continue;
+              const defaults = extractDefaultFromSchema(schemaProp);
+              if (!defaults || typeof defaults !== "object") continue;
+
+              const merged = { ...(defaults as Record<string, unknown>), enabled: true };
+              replacementYaml = convertYamlKeysToCamelCase(stringify({ [blockName]: merged }, { indent: 2 }).trim());
+            }
 
             const isLast = endLine >= model.getLineCount();
             isUpdatingRef.current = true;
