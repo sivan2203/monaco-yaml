@@ -90,7 +90,7 @@ function normalizeValueBySchema(
  * Извлекает default-значение из поля схемы.
  * Если поле вложенное, рекурсивно собирает дефолты дочерних полей.
  */
-function extractDefaultFromSchema(schemaProperty: JsonSchemaProperty): unknown {
+export function extractDefaultFromSchema(schemaProperty: JsonSchemaProperty): unknown {
   if (schemaProperty.default !== undefined) return schemaProperty.default;
 
   if (!schemaProperty.properties) return undefined;
