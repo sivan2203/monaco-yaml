@@ -7,6 +7,7 @@ import {
   extractAllBlocks,
   buildFullYaml,
   setEnabledInBlock,
+  convertYamlKeysToCamelCase,
 } from "../utils/yaml-utils";
 import { extractDefaultFromSchema } from "../yaml-generator/generate-yaml";
 import type { JsonSchemaProperty } from "../yaml-generator/config-data.interface";
@@ -236,7 +237,7 @@ export function useYamlEditor(initialYaml: string, schema: Record<string, unknow
             if (!defaults || typeof defaults !== "object") continue;
 
             const merged = { ...(defaults as Record<string, unknown>), enabled: true };
-            const replacementYaml = stringify({ [blockName]: merged }, { indent: 2 }).trim();
+            const replacementYaml = convertYamlKeysToCamelCase(stringify({ [blockName]: merged }, { indent: 2 }).trim());
 
             const isLast = endLine >= model.getLineCount();
             isUpdatingRef.current = true;

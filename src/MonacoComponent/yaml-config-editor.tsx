@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import Editor from "@monaco-editor/react";
 import { configureMonacoYaml } from "monaco-yaml";
 import { useYamlEditor } from "./hooks/use-yaml-editor";
-import { getChangedBlocks } from "./utils/yaml-utils";
+import { getChangedBlocks, convertYamlKeysToCamelCase } from "./utils/yaml-utils";
 import { ProblemsPanel } from "./ui/problems-panel";
 import { DiffModal } from "./diff-modal";
 import {
@@ -16,15 +16,6 @@ import { getMonacoTheme } from "./types";
 import type { YamlConfigEditorProps, EditorProblem } from "./types";
 import "./styles.css";
 
-function convertYamlKeysToCamelCase(text: string): string {
-  return text.replace(
-    /^(\s*)(\$\{\d+:)?([a-zA-Z][a-zA-Z0-9_-]*)(\})?(\s*:)/gm,
-    (_, indent, snippetPrefix, key, snippetSuffix, colon) => {
-      const camelKey = key.replace(/[_-](\w)/g, (_: string, c: string) => c.toUpperCase());
-      return `${indent}${snippetPrefix ?? ""}${camelKey}${snippetSuffix ?? ""}${colon}`;
-    },
-  );
-}
 
 function applyToCamelCase(
   item: monaco.languages.CompletionItem,
