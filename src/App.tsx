@@ -229,7 +229,7 @@ const MOCK_CONFIG_RESPONSE: BackendConfigResponse = {
           },
           "unionAudit": {
               "enabled": true,
-              "kafkaBrokers": null
+              "kafkaBrokers": []
           }
       }
   }

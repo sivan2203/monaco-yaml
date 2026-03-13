@@ -239,13 +239,22 @@ export function useYamlEditor(initialYaml: string, schema: Record<string, unknow
                 setEnabledInBlock(existingDisabled.fullText, true).trim()
               );
             } else {
-              const schemaProp = schemaProps[blockName];
-              if (!schemaProp) continue;
-              const defaults = extractDefaultFromSchema(schemaProp);
-              if (!defaults || typeof defaults !== "object") continue;
+              // Fallback: блок может быть в оригинальном YAML, но ещё не попасть в disabledBlocksRef
+              // (race condition: пользователь напечатал stub до того, как 500мс дебаунс обработал удаление)
+              const originalBlockText = originalBlocksRef.current.get(blockName);
+              if (originalBlockText) {
+                replacementYaml = convertYamlKeysToCamelCase(
+                  setEnabledInBlock(originalBlockText, true).trim()
+                );
+              } else {
+                const schemaProp = schemaProps[blockName];
+                if (!schemaProp) continue;
+                const defaults = extractDefaultFromSchema(schemaProp);
+                if (!defaults || typeof defaults !== "object") continue;
 
-              const merged = { ...(defaults as Record<string, unknown>), enabled: true };
-              replacementYaml = convertYamlKeysToCamelCase(stringify({ [blockName]: merged }, { indent: 2 }).trim());
+                const merged = { ...(defaults as Record<string, unknown>), enabled: true };
+                replacementYaml = convertYamlKeysToCamelCase(stringify({ [blockName]: merged }, { indent: 2 }).trim());
+              }
             }
 
             const isLast = endLine >= model.getLineCount();
