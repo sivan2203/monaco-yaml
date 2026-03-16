@@ -2,7 +2,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import Editor from "@monaco-editor/react";
 import { configureMonacoYaml } from "monaco-yaml";
 import { useYamlEditor } from "./hooks/use-yaml-editor";
-import { getChangedBlocks } from "./utils/yaml-utils";
+import { getChangedBlocks, convertYamlKeysToCamelCase, setEnabledInBlock } from "./utils/yaml-utils";
+import type { DisabledBlock } from "./types";
 import { ProblemsPanel } from "./ui/problems-panel";
 import { DiffModal } from "./diff-modal";
 import {
@@ -16,15 +17,6 @@ import { getMonacoTheme } from "./types";
 import type { YamlConfigEditorProps, EditorProblem } from "./types";
 import "./styles.css";
 
-function convertYamlKeysToCamelCase(text: string): string {
-  return text.replace(
-    /^(\s*)(\$\{\d+:)?([a-zA-Z][a-zA-Z0-9_-]*)(\})?(\s*:)/gm,
-    (_, indent, snippetPrefix, key, snippetSuffix, colon) => {
-      const camelKey = key.replace(/[_-](\w)/g, (_: string, c: string) => c.toUpperCase());
-      return `${indent}${snippetPrefix ?? ""}${camelKey}${snippetSuffix ?? ""}${colon}`;
-    },
-  );
-}
 
 function applyToCamelCase(
   item: monaco.languages.CompletionItem,
@@ -45,6 +37,7 @@ export function YamlConfigEditor({
   onCancel,
 }: YamlConfigEditorProps) {
   const yamlDisposableRef = useRef<{ dispose(): void } | null>(null);
+  const disabledBlocksForCompletionRef = useRef<DisabledBlock[]>([]);
 
   useEffect(() => {
     yamlDisposableRef.current?.dispose();
@@ -82,7 +75,22 @@ export function YamlConfigEditor({
         provider.provideCompletionItems = async (...args) => {
           const result = await origProvide(...args);
           if (result && "suggestions" in result) {
-            result.suggestions = result.suggestions.map(applyToCamelCase);
+            result.suggestions = result.suggestions.map((item) => {
+              const processed = applyToCamelCase(item);
+              const labelStr = typeof processed.label === "string"
+                ? processed.label
+                : (processed.label as { label: string }).label;
+              const disabledBlock = disabledBlocksForCompletionRef.current.find(
+                (b) => b.name === labelStr,
+              );
+              if (disabledBlock && typeof processed.insertText === "string") {
+                processed.insertText = convertYamlKeysToCamelCase(
+                  setEnabledInBlock(disabledBlock.fullText, true).trim(),
+                );
+                processed.insertTextRules = 0;
+              }
+              return processed;
+            });
           }
           return result;
         };
@@ -90,7 +98,21 @@ export function YamlConfigEditor({
           const origResolve = provider.resolveCompletionItem.bind(provider);
           provider.resolveCompletionItem = async (...args) => {
             const item = await origResolve(...args);
-            return item ? applyToCamelCase(item) : item;
+            if (!item) return item;
+            const processed = applyToCamelCase(item);
+            const labelStr = typeof processed.label === "string"
+              ? processed.label
+              : (processed.label as { label: string }).label;
+            const disabledBlock = disabledBlocksForCompletionRef.current.find(
+              (b) => b.name === labelStr,
+            );
+            if (disabledBlock && typeof processed.insertText === "string") {
+              processed.insertText = convertYamlKeysToCamelCase(
+                setEnabledInBlock(disabledBlock.fullText, true).trim(),
+              );
+              processed.insertTextRules = 0;
+            }
+            return processed;
           };
         }
       }
@@ -134,7 +156,11 @@ export function YamlConfigEditor({
     revealLine,
     isDirty,
     resetDirty,
-  } = useYamlEditor(yamlConfig, handleSave);
+  } = useYamlEditor(yamlConfig, schema, handleSave);
+
+  useEffect(() => {
+    disabledBlocksForCompletionRef.current = disabledBlocks;
+  }, [disabledBlocks]);
 
   const [isDiffOpen, setIsDiffOpen] = useState(false);
   const [diffYaml, setDiffYaml] = useState("");

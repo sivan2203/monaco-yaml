@@ -9,6 +9,16 @@ import {
 } from "yaml";
 import type { DisabledBlock } from "../types";
 
+export function convertYamlKeysToCamelCase(text: string): string {
+  return text.replace(
+    /^(\s*)(\$\{\d+:)?([a-zA-Z][a-zA-Z0-9_-]*)(\})?(\s*:)/gm,
+    (_, indent, snippetPrefix, key, snippetSuffix, colon) => {
+      const camelKey = key.replace(/[_-](\w)/g, (_: string, c: string) => c.toUpperCase());
+      return `${indent}${snippetPrefix ?? ""}${camelKey}${snippetSuffix ?? ""}${colon}`;
+    },
+  );
+}
+
 export function safeParseDocument(yaml: string): Document {
   const doc = parseDocument(yaml, { uniqueKeys: false, strict: false });
   doc.errors = [];

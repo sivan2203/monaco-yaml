@@ -1,5 +1,5 @@
 import { useRef, useEffect, useState, useCallback, useMemo } from "react";
-import { type Pair, isMap } from "yaml";
+import { type Pair, isMap, stringify } from "yaml";
 import { monaco } from "../editor-setup/monaco-setup";
 import {
   safeParseDocument,
@@ -7,7 +7,10 @@ import {
   extractAllBlocks,
   buildFullYaml,
   setEnabledInBlock,
+  convertYamlKeysToCamelCase,
 } from "../utils/yaml-utils";
+import { extractDefaultFromSchema } from "../yaml-generator/generate-yaml";
+import type { JsonSchemaProperty } from "../yaml-generator/config-data.interface";
 import type { DisabledBlock, EditorProblem, YamlEditorResult } from "../types";
 import type { OnMount } from "@monaco-editor/react";
 
@@ -86,7 +89,7 @@ function getTopLevelYamlBlockRanges(
  * Управляет жизненным циклом YAML-редактора: фильтрацией блоков, проблемами валидации
  * и сборкой полного YAML для сценария сохранения.
  */
-export function useYamlEditor(initialYaml: string, onCtrlS?: () => void): YamlEditorResult {
+export function useYamlEditor(initialYaml: string, schema: Record<string, unknown>, onCtrlS?: () => void): YamlEditorResult {
   const editorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null);
   const isUpdatingRef = useRef(false);
   const originalBlocksRef = useRef<Map<string, string>>(new Map());
@@ -95,6 +98,8 @@ export function useYamlEditor(initialYaml: string, onCtrlS?: () => void): YamlEd
   const initialFilteredYamlRef = useRef("");
   const onCtrlSRef = useRef(onCtrlS);
   onCtrlSRef.current = onCtrlS;
+  const schemaRef = useRef(schema);
+  schemaRef.current = schema;
 
   const [problems, setProblems] = useState<EditorProblem[]>([]);
   const [disabledBlocks, setDisabledBlocks] = useState<DisabledBlock[]>([]);
@@ -206,6 +211,62 @@ export function useYamlEditor(initialYaml: string, onCtrlS?: () => void): YamlEd
           if (edits.length > 0) {
             isUpdatingRef.current = true;
             model.applyEdits(edits);
+            isUpdatingRef.current = false;
+          }
+        }
+
+        // Inject schema defaults into stub blocks (only { enabled: true })
+        const schemaProps = (schemaRef.current as { properties?: Record<string, JsonSchemaProperty> }).properties;
+        if (schemaProps) {
+          const afterDisableValue = newDisabled.length > 0 ? model.getValue() : currentValue;
+          const blockRanges = getTopLevelYamlBlockRanges(model);
+          const docJs = safeParseDocument(afterDisableValue).toJS() as Record<string, unknown>;
+
+          for (const [blockName, [startLine, endLine]] of blockRanges) {
+            const blockContent = docJs[blockName];
+            const isStub =
+              typeof blockContent === "object" &&
+              blockContent !== null &&
+              Object.keys(blockContent as object).length === 1 &&
+              (blockContent as Record<string, unknown>).enabled === true;
+            if (!isStub) continue;
+
+            const existingDisabled = disabledBlocksRef.current.find((b) => b.name === blockName);
+            let replacementYaml: string;
+
+            if (existingDisabled) {
+              replacementYaml = convertYamlKeysToCamelCase(
+                setEnabledInBlock(existingDisabled.fullText, true).trim()
+              );
+            } else {
+              // Fallback: блок может быть в оригинальном YAML, но ещё не попасть в disabledBlocksRef
+              // (race condition: пользователь напечатал stub до того, как 500мс дебаунс обработал удаление)
+              const originalBlockText = originalBlocksRef.current.get(blockName);
+              if (originalBlockText) {
+                replacementYaml = convertYamlKeysToCamelCase(
+                  setEnabledInBlock(originalBlockText, true).trim()
+                );
+              } else {
+                const schemaProp = schemaProps[blockName];
+                if (!schemaProp) continue;
+                const defaults = extractDefaultFromSchema(schemaProp);
+                if (!defaults || typeof defaults !== "object") continue;
+
+                const merged = { ...(defaults as Record<string, unknown>), enabled: true };
+                replacementYaml = convertYamlKeysToCamelCase(stringify({ [blockName]: merged }, { indent: 2 }).trim());
+              }
+            }
+
+            const isLast = endLine >= model.getLineCount();
+            isUpdatingRef.current = true;
+            model.applyEdits([{
+              range: new monaco.Range(
+                startLine, 1,
+                isLast ? endLine : endLine + 1,
+                isLast ? model.getLineMaxColumn(endLine) : 1,
+              ),
+              text: isLast ? replacementYaml : replacementYaml + "\n",
+            }]);
             isUpdatingRef.current = false;
           }
         }

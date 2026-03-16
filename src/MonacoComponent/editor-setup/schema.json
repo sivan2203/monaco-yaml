@@ -430,10 +430,7 @@
             "description": "Аудит Union",
             "default": {
                 "enabled": true,
-                "kafka_brokers": [
-                    "kafka-1:9092",
-                    "kafka-2:9092"
-                ]
+                "kafka_brokers": []
             },
             "markdownDescription": "\n\nАудит Union\n\n### Пример:\n\n```yaml\nunionAudit:\n  enabled: true\n  kafkaBrokers:\n    - kafka-1:9092\n    - kafka-2:9092\n```\n",
             "allOf": [
