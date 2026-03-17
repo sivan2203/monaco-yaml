@@ -6,52 +6,7 @@ from pydantic import BaseModel, Field
 
 from app.core.utils import to_camel
 
-from app.core.clients.service_registry_go.service_settings_descriptions import (
-    APP_DEFAULT_DICT, APP_DESCRIPTION, APP_MARKDOWN, CN_DEFAULT_DICT, DB_MIGRATION_DEFAULT_DICT, DEFAULT_DYNATRACE_DICT, EGRESS_DEFAULT_DICT, EGRESS_DESCRIPTION, EGRESS_MARKDOWN, FLUENTBIT_DEFAULT_DICT, INGRESS_DEFAULT_DICT, INGRESS_DESCRIPTION, INGRESS_MARKDOWN, OTT_DEFAULT_DICT, RATE_LIMITS_DEFAULT_DICT, UFS_PARAMS_DEFAULT_DICT, UFS_SESSION_DEFAULT_DICT, UNIMON_DEFAULT_DICT, UNIMON_DESCRIPTION, UNIMON_MARKDOWN,
-    FLUENTBIT_DESCRIPTION, FLUENTBIT_MARKDOWN,
-    CN_DESCRIPTION, CN_MARKDOWN,
-    UFS_SESSION_DESCRIPTION, UFS_SESSION_MARKDOWN,
-    UFS_PARAMS_DESCRIPTION, UFS_PARAMS_MARKDOWN,
-    OTT_PARAMS_DESCRIPTION, OTT_PARAMS_MARKDOWN,
-    RATE_LIMITS_DESCRIPTION, RATE_LIMITS_MARKDOWN, UNION_AUDIT_DEFAULT_DICT,
-    UNION_AUDIT_DESCRIPTION, UNION_AUDIT_MARKDOWN,
-    DYNATRACE_DESCRIPTION, DYNATRACE_MARKDOWN,
-    DB_MIGRATION_DESCRIPTION, DB_MIGRATION_MARKDOWN,
-    ISTIO_SIDECAR, ISTIO_SIDECAR_DESCRIPTION,
-    VAULT_SIDECAR, VAULT_SIDECAR_DESCRIPTION,
-    LIMITS, REQUESTS,
-    LIMITS_DESCRIPTION, REQUESTS_DESCRIPTION,
-    LIVENESS_PROBE, READINESS_PROBE,
-    LIVENESS_PROBE_DESCRIPTION, READINESS_PROBE_DESCRIPTION,
-    KAFKA_BROKERS, KAFKA_BROKERS_DESCRIPTION, UNIMON_YAML_DEFAULT, DYNATRACE_YAML_DEFAULT,
-    CPU, CPU_DESCRIPTION, MEMORY, MEMORY_DESCRIPTION,
-    INITIAL_DELAY_SECONDS, INITIAL_DELAY_SECONDS_DESCRIPTION,
-    PROBE_PATH, PROBE_PATH_DESCRIPTION, PROBE_PORT, PROBE_PORT_DESCRIPTION,
-    PROBE_LIVENESS, PROBE_LIVENESS_DESCRIPTION, PROBE_READINESS, PROBE_READINESS_DESCRIPTION,
-    REPLICAS, REPLICAS_DESCRIPTION,
-    APP_COMMAND, APP_COMMAND_DESCRIPTION, APP_PORT, APP_PORT_DESCRIPTION,
-    APP_PROBE, APP_PROBE_DESCRIPTION, APP_RESOURCES, APP_RESOURCES_DESCRIPTION,
-    DB_MIGRATION_COMMAND, DB_MIGRATION_COMMAND_DESCRIPTION,
-    DYNATRACE_ENABLED, DYNATRACE_ENABLED_DESCRIPTION,
-    DYNATRACE_HOST, DYNATRACE_HOST_DESCRIPTION,
-    DYNATRACE_LABELS, DYNATRACE_LABELS_DESCRIPTION,
-    DYNATRACE_CLUSTER_NAME, DYNATRACE_CLUSTER_NAME_DESCRIPTION,
-    DYNATRACE_ENV_NAME, DYNATRACE_ENV_NAME_DESCRIPTION,
-    DYNATRACE_AGENT_VERSION, DYNATRACE_AGENT_VERSION_DESCRIPTION,
-    DYNATRACE_CLUSTER, DYNATRACE_CLUSTER_DESCRIPTION,
-    DYNATRACE_ENV, DYNATRACE_ENV_DESCRIPTION,
-    DYNATRACE_PROJECT_NAME, DYNATRACE_PROJECT_NAME_DESCRIPTION,
-    RATE_LIMITS_ENABLED, RATE_LIMITS_ENABLED_DESCRIPTION,
-    RATE_LIMITS_RPS, RATE_LIMITS_RPS_DESCRIPTION,
-    CN_ENABLED, CN_ENABLED_DESCRIPTION, CN_WHITELIST, CN_WHITELIST_DESCRIPTION,
-    UNIMON_ENABLED, UNIMON_ENABLED_DESCRIPTION,
-    UNIMON_AGENT, UNIMON_AGENT_DESCRIPTION, UNIMON_SENDER, UNIMON_SENDER_DESCRIPTION,
-    UNIMON_TOPIC, UNIMON_TOPIC_DESCRIPTION,
-    UNIMON_ALWAYS_ENABLED, UNIMON_ALWAYS_ENABLED_DESCRIPTION,
-    UNION_AUDIT_ENABLED, UNION_AUDIT_ENABLED_DESCRIPTION,
-    FLUENTBIT_ENABLED, FLUENTBIT_ENABLED_DESCRIPTION,
-    FLUENTBIT_TOPIC, FLUENTBIT_TOPIC_DESCRIPTION,
-)
+import app.core.clients.service_registry_go.service_settings_descriptions as ssd
 
 class SuccessResponse(BaseModel):
     success: bool
@@ -131,12 +86,12 @@ class NewServiceRegistrationInput(BaseModel):
 
 
 class PerformanceSettings(BaseModel):
-    cpu: str = Field(description=CPU, markdownDescription=CPU_DESCRIPTION)
-    memory: str = Field(description=MEMORY, markdownDescription=MEMORY_DESCRIPTION)
+    cpu: str = Field(description=ssd.CPU, markdownDescription=ssd.CPU_DESCRIPTION)
+    memory: str = Field(description=ssd.MEMORY, markdownDescription=ssd.MEMORY_DESCRIPTION)
 
 class PerformanceSettingsServiceGo(BaseModel):
-    cpu: str = Field(description=CPU, markdownDescription=CPU_DESCRIPTION)
-    memory: str = Field(description=MEMORY, markdownDescription=MEMORY_DESCRIPTION)
+    cpu: str = Field(description=ssd.CPU, markdownDescription=ssd.CPU_DESCRIPTION)
+    memory: str = Field(description=ssd.MEMORY, markdownDescription=ssd.MEMORY_DESCRIPTION)
 
 class PerformanceSettingsFullInput(BaseModel):
     cpu: str
@@ -145,7 +100,7 @@ class PerformanceSettingsFullInput(BaseModel):
 
 class ProbeSettings(BaseModel):
     initial_delay_seconds: int = Field(
-        description=INITIAL_DELAY_SECONDS, markdownDescription=INITIAL_DELAY_SECONDS_DESCRIPTION
+        description=ssd.INITIAL_DELAY_SECONDS, markdownDescription=ssd.INITIAL_DELAY_SECONDS_DESCRIPTION
     )
 
     class Config:
@@ -157,19 +112,19 @@ class ProbeSettingsFullInput(BaseModel):
 
 class SidecarSettings(BaseModel):
     limits: PerformanceSettings = Field(
-        description=LIMITS, markdownDescription=LIMITS_DESCRIPTION
+        description=ssd.LIMITS, markdownDescription=ssd.LIMITS_DESCRIPTION
     )
     requests: PerformanceSettings = Field(
-        description=REQUESTS, markdownDescription=REQUESTS_DESCRIPTION
+        description=ssd.REQUESTS, markdownDescription=ssd.REQUESTS_DESCRIPTION
     )
     liveness_probe: ProbeSettings = Field(
-        description=LIVENESS_PROBE, markdownDescription=LIVENESS_PROBE_DESCRIPTION
+        description=ssd.LIVENESS_PROBE, markdownDescription=ssd.LIVENESS_PROBE_DESCRIPTION
     )
     readiness_probe: ProbeSettings = Field(
-        description=READINESS_PROBE, markdownDescription=READINESS_PROBE_DESCRIPTION
+        description=ssd.READINESS_PROBE, markdownDescription=ssd.READINESS_PROBE_DESCRIPTION
     )
 
-    class Config: 
+    class Config:
         alias_generator=to_camel
         allow_population_by_field_name = True
 
@@ -180,49 +135,49 @@ class SidecarIstioSettings(SidecarSettings):
 
 class UnimonParams(SidecarSettings):
     istio: SidecarIstioSettings = Field(
-        description=ISTIO_SIDECAR, markdownDescription=ISTIO_SIDECAR_DESCRIPTION
+        description=ssd.ISTIO_SIDECAR, markdownDescription=ssd.ISTIO_SIDECAR_DESCRIPTION
     )
     vault: SidecarSettings = Field(
-        description=VAULT_SIDECAR, markdownDescription=VAULT_SIDECAR_DESCRIPTION
+        description=ssd.VAULT_SIDECAR, markdownDescription=ssd.VAULT_SIDECAR_DESCRIPTION
     )
 
 
 class Unimon(BaseModel):
-    enabled: bool = Field(description=UNIMON_ENABLED, markdownDescription=UNIMON_ENABLED_DESCRIPTION)
-    agent: UnimonParams = Field(description=UNIMON_AGENT, markdownDescription=UNIMON_AGENT_DESCRIPTION)
-    sender: UnimonParams = Field(description=UNIMON_SENDER, markdownDescription=UNIMON_SENDER_DESCRIPTION)
+    enabled: bool = Field(description=ssd.UNIMON_ENABLED, markdownDescription=ssd.UNIMON_ENABLED_DESCRIPTION)
+    agent: UnimonParams = Field(description=ssd.UNIMON_AGENT, markdownDescription=ssd.UNIMON_AGENT_DESCRIPTION)
+    sender: UnimonParams = Field(description=ssd.UNIMON_SENDER, markdownDescription=ssd.UNIMON_SENDER_DESCRIPTION)
     topic: Optional[str] = Field(
-        default='', description=UNIMON_TOPIC, markdownDescription=UNIMON_TOPIC_DESCRIPTION
+        default='', description=ssd.UNIMON_TOPIC, markdownDescription=ssd.UNIMON_TOPIC_DESCRIPTION
     )
     always_enabled: Optional[bool] = Field(
-        default=None, description=UNIMON_ALWAYS_ENABLED, markdownDescription=UNIMON_ALWAYS_ENABLED_DESCRIPTION
+        default=None, description=ssd.UNIMON_ALWAYS_ENABLED, markdownDescription=ssd.UNIMON_ALWAYS_ENABLED_DESCRIPTION
     )
     kafka_brokers: Optional[List[str]] = Field(
-        description=KAFKA_BROKERS, markdownDescription=KAFKA_BROKERS_DESCRIPTION, default=[]
+        description=ssd.KAFKA_BROKERS, markdownDescription=ssd.KAFKA_BROKERS_DESCRIPTION, default=[]
     )
 
 
 class Fluentbit(SidecarSettings):
-    enabled: bool = Field(description=FLUENTBIT_ENABLED, markdownDescription=FLUENTBIT_ENABLED_DESCRIPTION)
-    topic: str = Field(description=FLUENTBIT_TOPIC, markdownDescription=FLUENTBIT_TOPIC_DESCRIPTION)
+    enabled: bool = Field(description=ssd.FLUENTBIT_ENABLED, markdownDescription=ssd.FLUENTBIT_ENABLED_DESCRIPTION)
+    topic: str = Field(description=ssd.FLUENTBIT_TOPIC, markdownDescription=ssd.FLUENTBIT_TOPIC_DESCRIPTION)
     kafka_brokers: Optional[List[str]] = Field(
-        description=KAFKA_BROKERS, markdownDescription=KAFKA_BROKERS_DESCRIPTION, default=[]
+        description=ssd.KAFKA_BROKERS, markdownDescription=ssd.KAFKA_BROKERS_DESCRIPTION, default=[]
     )
 
 
 class CN(BaseModel):
-    enabled: bool = Field(default=False, description=CN_ENABLED, markdownDescription=CN_ENABLED_DESCRIPTION)
+    enabled: bool = Field(default=False, description=ssd.CN_ENABLED, markdownDescription=ssd.CN_ENABLED_DESCRIPTION)
     whitelist: List[str] = Field(
-        default=[], description=CN_WHITELIST, markdownDescription=CN_WHITELIST_DESCRIPTION
+        default=[], description=ssd.CN_WHITELIST, markdownDescription=ssd.CN_WHITELIST_DESCRIPTION
     )
 
 
 class RateLimits(BaseModel):
     enabled: Optional[bool] = Field(
-        default=None, description=RATE_LIMITS_ENABLED, markdownDescription=RATE_LIMITS_ENABLED_DESCRIPTION
+        default=None, description=ssd.RATE_LIMITS_ENABLED, markdownDescription=ssd.RATE_LIMITS_ENABLED_DESCRIPTION
     )
     rps: Optional[int] = Field(
-        default=100, description=RATE_LIMITS_RPS, markdownDescription=RATE_LIMITS_RPS_DESCRIPTION
+        default=100, description=ssd.RATE_LIMITS_RPS, markdownDescription=ssd.RATE_LIMITS_RPS_DESCRIPTION
     )
 
 class OTTParams(SidecarSettings):
@@ -230,11 +185,11 @@ class OTTParams(SidecarSettings):
 
 
 class UnionAudit(BaseModel):
-    enabled: bool = Field(description=UNION_AUDIT_ENABLED, markdownDescription=UNION_AUDIT_ENABLED_DESCRIPTION)
+    enabled: bool = Field(description=ssd.UNION_AUDIT_ENABLED, markdownDescription=ssd.UNION_AUDIT_ENABLED_DESCRIPTION)
     kafka_brokers: Optional[List[str]] = Field(
-        alias='kafkaBrokers', 
-        description=KAFKA_BROKERS, 
-        markdownDescription=KAFKA_BROKERS_DESCRIPTION, 
+        alias='kafkaBrokers',
+        description=ssd.KAFKA_BROKERS,
+        markdownDescription=ssd.KAFKA_BROKERS_DESCRIPTION,
         default=[]
     )
 
@@ -245,10 +200,10 @@ class UnionAuditInput(BaseModel):
 
 class DynatraceHost(BaseModel):
     cluster_name: Optional[str] = Field(
-        default=None, description=DYNATRACE_CLUSTER_NAME, markdownDescription=DYNATRACE_CLUSTER_NAME_DESCRIPTION
+        default=None, description=ssd.DYNATRACE_CLUSTER_NAME, markdownDescription=ssd.DYNATRACE_CLUSTER_NAME_DESCRIPTION
     )
     env_name: Optional[str] = Field(
-        default=None, description=DYNATRACE_ENV_NAME, markdownDescription=DYNATRACE_ENV_NAME_DESCRIPTION
+        default=None, description=ssd.DYNATRACE_ENV_NAME, markdownDescription=ssd.DYNATRACE_ENV_NAME_DESCRIPTION
     )
 
 
@@ -258,10 +213,10 @@ class DynatraceHostInput(BaseModel):
 
 
 class DynatraceLabels(BaseModel):
-    agent_version: str = Field(description=DYNATRACE_AGENT_VERSION, markdownDescription=DYNATRACE_AGENT_VERSION_DESCRIPTION)
-    cluster: str = Field(description=DYNATRACE_CLUSTER, markdownDescription=DYNATRACE_CLUSTER_DESCRIPTION)
-    env: str = Field(description=DYNATRACE_ENV, markdownDescription=DYNATRACE_ENV_DESCRIPTION)
-    project_name: str = Field(description=DYNATRACE_PROJECT_NAME, markdownDescription=DYNATRACE_PROJECT_NAME_DESCRIPTION)
+    agent_version: str = Field(description=ssd.DYNATRACE_AGENT_VERSION, markdownDescription=ssd.DYNATRACE_AGENT_VERSION_DESCRIPTION)
+    cluster: str = Field(description=ssd.DYNATRACE_CLUSTER, markdownDescription=ssd.DYNATRACE_CLUSTER_DESCRIPTION)
+    env: str = Field(description=ssd.DYNATRACE_ENV, markdownDescription=ssd.DYNATRACE_ENV_DESCRIPTION)
+    project_name: str = Field(description=ssd.DYNATRACE_PROJECT_NAME, markdownDescription=ssd.DYNATRACE_PROJECT_NAME_DESCRIPTION)
 
 class DynatraceLabelsInput(BaseModel):
     agent_version: str
@@ -272,15 +227,15 @@ class DynatraceLabelsInput(BaseModel):
 
 class Dynatrace(BaseModel):
     enabled: bool = Field(
-        default=False, description=DYNATRACE_ENABLED, markdownDescription=DYNATRACE_ENABLED_DESCRIPTION
+        default=False, description=ssd.DYNATRACE_ENABLED, markdownDescription=ssd.DYNATRACE_ENABLED_DESCRIPTION
     )
     reflex_host: Optional[DynatraceHost] = Field(
-        default=DynatraceHost.parse_obj(DEFAULT_DYNATRACE_DICT['reflex_host']),
-        description=DYNATRACE_HOST, markdownDescription=DYNATRACE_HOST_DESCRIPTION
+        default=DynatraceHost.parse_obj(ssd.DEFAULT_DYNATRACE_DICT['reflex_host']),
+        description=ssd.DYNATRACE_HOST, markdownDescription=ssd.DYNATRACE_HOST_DESCRIPTION
     )
     reflex_labels: Optional[DynatraceLabels] = Field(
-        default=DynatraceLabels.parse_obj(DEFAULT_DYNATRACE_DICT['reflex_labels']),
-        description=DYNATRACE_LABELS, markdownDescription=DYNATRACE_LABELS_DESCRIPTION
+        default=DynatraceLabels.parse_obj(ssd.DEFAULT_DYNATRACE_DICT['reflex_labels']),
+        description=ssd.DYNATRACE_LABELS, markdownDescription=ssd.DYNATRACE_LABELS_DESCRIPTION
     )
 
 class DynatraceInput(BaseModel):
@@ -290,15 +245,15 @@ class DynatraceInput(BaseModel):
 
 
 class DBMigration(BaseModel):
-    command: str = Field(description=DB_MIGRATION_COMMAND, markdownDescription=DB_MIGRATION_COMMAND_DESCRIPTION)
-    limits: PerformanceSettings = Field(description=LIMITS, markdownDescription=LIMITS_DESCRIPTION)
-    requests: PerformanceSettings = Field(description=REQUESTS, markdownDescription=REQUESTS_DESCRIPTION)
+    command: str = Field(description=ssd.DB_MIGRATION_COMMAND, markdownDescription=ssd.DB_MIGRATION_COMMAND_DESCRIPTION)
+    limits: PerformanceSettings = Field(description=ssd.LIMITS, markdownDescription=ssd.LIMITS_DESCRIPTION)
+    requests: PerformanceSettings = Field(description=ssd.REQUESTS, markdownDescription=ssd.REQUESTS_DESCRIPTION)
 
 class ProbeServiceGo(BaseModel):
-    path: Optional[str] = Field(default=None, description=PROBE_PATH, markdownDescription=PROBE_PATH_DESCRIPTION)
-    port: Optional[int] = Field(default=None, description=PROBE_PORT, markdownDescription=PROBE_PORT_DESCRIPTION)
+    path: Optional[str] = Field(default=None, description=ssd.PROBE_PATH, markdownDescription=ssd.PROBE_PATH_DESCRIPTION)
+    port: Optional[int] = Field(default=None, description=ssd.PROBE_PORT, markdownDescription=ssd.PROBE_PORT_DESCRIPTION)
     initial_delay_seconds: Optional[int] = Field(
-        default=None, description=INITIAL_DELAY_SECONDS, markdownDescription=INITIAL_DELAY_SECONDS_DESCRIPTION
+        default=None, description=ssd.INITIAL_DELAY_SECONDS, markdownDescription=ssd.INITIAL_DELAY_SECONDS_DESCRIPTION
     )
     class Config:
         alias_generator=to_camel
@@ -308,17 +263,17 @@ class ProbeServiceGoInput(BaseModel):
     path: Optional[str]
     port: Optional[int]
     initial_delay_seconds: Optional[int]
-    class Config: 
+    class Config:
         alias_generator=to_camel
         allow_population_by_field_name = True
 
 
 class ProbePropertiesServiceGo(ProbeServiceGo):
     liveness_probe: Optional[ProbeServiceGo] = Field(
-        default=None, description=PROBE_LIVENESS, markdownDescription=PROBE_LIVENESS_DESCRIPTION
+        default=None, description=ssd.PROBE_LIVENESS, markdownDescription=ssd.PROBE_LIVENESS_DESCRIPTION
     )
     readiness_probe: Optional[ProbeServiceGo] = Field(
-        default=None, description=PROBE_READINESS, markdownDescription=PROBE_READINESS_DESCRIPTION
+        default=None, description=ssd.PROBE_READINESS, markdownDescription=ssd.PROBE_READINESS_DESCRIPTION
     )
     class Config:
         alias_generator=to_camel
@@ -327,7 +282,7 @@ class ProbePropertiesServiceGo(ProbeServiceGo):
 class ProbePropertiesServiceGoInput(ProbeServiceGo):
     liveness_probe: Optional[ProbeServiceGoInput]
     readiness_probe: Optional[ProbeServiceGoInput]
-    class Config: 
+    class Config:
         alias_generator=to_camel
         allow_population_by_field_name = True
 
@@ -339,7 +294,7 @@ class SetProbeServiceGo(ProbeServiceGo):
 class SetProbePropertiesServiceGo(BaseModel):
     liveness_probe: SetProbeServiceGo
     readiness_probe: SetProbeServiceGo
-    class Config: 
+    class Config:
         alias_generator=to_camel
         allow_population_by_field_name = True
 
@@ -349,14 +304,14 @@ class SetAppResourcesServiceGo(BaseModel):
     requests: PerformanceSettingsServiceGo
     initial_delay_seconds: int
     replicas: int
-    class Config: 
+    class Config:
         alias_generator=to_camel
         allow_population_by_field_name = True
 
 
 class SystemContainerResourcesServiceGo(BaseModel):
-    limits: PerformanceSettingsServiceGo = Field(description=LIMITS, markdownDescription=LIMITS_DESCRIPTION)
-    requests: PerformanceSettingsServiceGo = Field(description=REQUESTS, markdownDescription=REQUESTS_DESCRIPTION)
+    limits: PerformanceSettingsServiceGo = Field(description=ssd.LIMITS, markdownDescription=ssd.LIMITS_DESCRIPTION)
+    requests: PerformanceSettingsServiceGo = Field(description=ssd.REQUESTS, markdownDescription=ssd.REQUESTS_DESCRIPTION)
     class Config:
         alias_generator=to_camel
         allow_population_by_field_name = True
@@ -364,20 +319,20 @@ class SystemContainerResourcesServiceGo(BaseModel):
 class SystemContainerResourcesServiceGoInput(BaseModel):
     limits: PerformanceSettingsFullInput
     requests: PerformanceSettingsFullInput
-    class Config: 
+    class Config:
         alias_generator=to_camel
         allow_population_by_field_name = True
 
 class SystemContainerResourcesFull(BaseModel):
-    limits: PerformanceSettingsServiceGo = Field(description=LIMITS, markdownDescription=LIMITS_DESCRIPTION)
-    requests: PerformanceSettingsServiceGo = Field(description=REQUESTS, markdownDescription=REQUESTS_DESCRIPTION)
+    limits: PerformanceSettingsServiceGo = Field(description=ssd.LIMITS, markdownDescription=ssd.LIMITS_DESCRIPTION)
+    requests: PerformanceSettingsServiceGo = Field(description=ssd.REQUESTS, markdownDescription=ssd.REQUESTS_DESCRIPTION)
     liveness_probe: Optional[ProbeSettings] = Field(
         ProbeSettings(initial_delay_seconds=120),
-        description=LIVENESS_PROBE, markdownDescription=LIVENESS_PROBE_DESCRIPTION
+        description=ssd.LIVENESS_PROBE, markdownDescription=ssd.LIVENESS_PROBE_DESCRIPTION
     )
     readiness_probe: Optional[ProbeSettings] = Field(
         ProbeSettings(initial_delay_seconds=120),
-        description=READINESS_PROBE, markdownDescription=READINESS_PROBE_DESCRIPTION
+        description=ssd.READINESS_PROBE, markdownDescription=ssd.READINESS_PROBE_DESCRIPTION
     )
     class Config:
         alias_generator=to_camel
@@ -388,7 +343,7 @@ class SystemContainerResourcesFullInput(BaseModel):
     requests: PerformanceSettingsFullInput
     liveness_probe: Optional[ProbeSettingsFullInput]
     readiness_probe: Optional[ProbeSettingsFullInput]
-    class Config: 
+    class Config:
         alias_generator=to_camel
         allow_population_by_field_name = True
 
@@ -396,7 +351,7 @@ class SystemContainerResourcesFullInput(BaseModel):
 class SystemContainerResourcesOpenshift(BaseModel):
     limits: PerformanceSettingsServiceGo
     requests: PerformanceSettingsServiceGo
-    class Config: 
+    class Config:
         alias_generator=to_camel
         allow_population_by_field_name = True
 
@@ -415,14 +370,14 @@ class VaultContainerResourcesFullInput(SystemContainerResourcesFullInput):
 
 
 class IstioAppResourcesServiceGo(SystemContainerResourcesServiceGo):
-    replicas: Optional[int] = Field(default=None, description=REPLICAS, markdownDescription=REPLICAS_DESCRIPTION)
+    replicas: Optional[int] = Field(default=None, description=ssd.REPLICAS, markdownDescription=ssd.REPLICAS_DESCRIPTION)
 
 class IstioAppResourcesServiceGoInput(SystemContainerResourcesServiceGoInput):
     replicas: Optional[int]
 
 
 class IstioContainerResourcesServiceGo(SystemContainerResourcesFull):
-    replicas: int = Field(description=REPLICAS, markdownDescription=REPLICAS_DESCRIPTION)
+    replicas: int = Field(description=ssd.REPLICAS, markdownDescription=ssd.REPLICAS_DESCRIPTION)
 
 class IstioContainerResourcesServiceGoInput(SystemContainerResourcesFullInput):
     replicas: int
@@ -430,10 +385,10 @@ class IstioContainerResourcesServiceGoInput(SystemContainerResourcesFullInput):
 
 class ContainersPropertiesServiceGo(BaseModel):
     istio: IstioContainerResourcesServiceGo = Field(
-        description=ISTIO_SIDECAR, markdownDescription=ISTIO_SIDECAR_DESCRIPTION
+        description=ssd.ISTIO_SIDECAR, markdownDescription=ssd.ISTIO_SIDECAR_DESCRIPTION
     )
     vault: VaultContainerResourcesFull = Field(
-        description=VAULT_SIDECAR, markdownDescription=VAULT_SIDECAR_DESCRIPTION
+        description=ssd.VAULT_SIDECAR, markdownDescription=ssd.VAULT_SIDECAR_DESCRIPTION
     )
 
 class ContainersPropertiesServiceGoInput(BaseModel):
@@ -443,11 +398,11 @@ class ContainersPropertiesServiceGoInput(BaseModel):
 
 class AppResourcesServiceGo(BaseModel):
     initial_delay_seconds: Optional[int] = Field(
-        default=120, description=INITIAL_DELAY_SECONDS, markdownDescription=INITIAL_DELAY_SECONDS_DESCRIPTION
+        default=120, description=ssd.INITIAL_DELAY_SECONDS, markdownDescription=ssd.INITIAL_DELAY_SECONDS_DESCRIPTION
     )
-    limits: PerformanceSettingsServiceGo = Field(description=LIMITS, markdownDescription=LIMITS_DESCRIPTION)
-    requests: PerformanceSettingsServiceGo = Field(description=REQUESTS, markdownDescription=REQUESTS_DESCRIPTION)
-    replicas: int = Field(description=REPLICAS, markdownDescription=REPLICAS_DESCRIPTION)
+    limits: PerformanceSettingsServiceGo = Field(description=ssd.LIMITS, markdownDescription=ssd.LIMITS_DESCRIPTION)
+    requests: PerformanceSettingsServiceGo = Field(description=ssd.REQUESTS, markdownDescription=ssd.REQUESTS_DESCRIPTION)
+    replicas: int = Field(description=ssd.REPLICAS, markdownDescription=ssd.REPLICAS_DESCRIPTION)
     class Config:
         alias_generator=to_camel
         allow_population_by_field_name = True
@@ -457,30 +412,30 @@ class AppResourcesServiceGoInput(BaseModel):
     limits: PerformanceSettingsFullInput
     requests: PerformanceSettingsFullInput
     replicas: int
-    class Config: 
+    class Config:
         alias_generator=to_camel
         allow_population_by_field_name = True
 
 
 class AppPropertiesServiceGo(BaseModel):
-    command: str = Field(description=APP_COMMAND, markdownDescription=APP_COMMAND_DESCRIPTION)
+    command: str = Field(description=ssd.APP_COMMAND, markdownDescription=ssd.APP_COMMAND_DESCRIPTION)
     istio: IstioAppResourcesServiceGo = Field(
-        description=ISTIO_SIDECAR, markdownDescription=ISTIO_SIDECAR_DESCRIPTION
+        description=ssd.ISTIO_SIDECAR, markdownDescription=ssd.ISTIO_SIDECAR_DESCRIPTION
     )
     vault: VaultContainerResourcesServiceGo = Field(
-        description=VAULT_SIDECAR, markdownDescription=VAULT_SIDECAR_DESCRIPTION
+        description=ssd.VAULT_SIDECAR, markdownDescription=ssd.VAULT_SIDECAR_DESCRIPTION
     )
     command: Optional[str] = Field(
-        default=None, description=APP_COMMAND, markdownDescription=APP_COMMAND_DESCRIPTION
+        default=None, description=ssd.APP_COMMAND, markdownDescription=ssd.APP_COMMAND_DESCRIPTION
     )
     port: Optional[int] = Field(
-        default=None, description=APP_PORT, markdownDescription=APP_PORT_DESCRIPTION
+        default=None, description=ssd.APP_PORT, markdownDescription=ssd.APP_PORT_DESCRIPTION
     )
     probe: ProbePropertiesServiceGo = Field(
-        description=APP_PROBE, markdownDescription=APP_PROBE_DESCRIPTION
+        description=ssd.APP_PROBE, markdownDescription=ssd.APP_PROBE_DESCRIPTION
     )
     resources: AppResourcesServiceGo = Field(
-        description=APP_RESOURCES, markdownDescription=APP_RESOURCES_DESCRIPTION
+        description=ssd.APP_RESOURCES, markdownDescription=ssd.APP_RESOURCES_DESCRIPTION
     )
 
 class AppPropertiesServiceGoInput(BaseModel):
@@ -501,10 +456,10 @@ class OpenshiftContainersInfoServiceGo(BaseModel):
 # todo replicas - fluentbit? unimon? - уточнить надо
 class ServiceSettingsResponse(BaseModel):
     unimon: Optional[Unimon] = Field(
-        default=Unimon.parse_obj(UNIMON_DEFAULT_DICT)
+        default=Unimon.parse_obj(ssd.UNIMON_DEFAULT_DICT)
     )
     fluentbit: Optional[Fluentbit] = Field(
-        default=Fluentbit.parse_obj(FLUENTBIT_DEFAULT_DICT),
+        default=Fluentbit.parse_obj(ssd.FLUENTBIT_DEFAULT_DICT),
     )
     cn: Optional[CN] = Field(
         alias="cn",
@@ -514,109 +469,109 @@ class ServiceSettingsResponse(BaseModel):
     ufs_params: Optional[SidecarSettings]
     ott_params: Optional[OTTParams] = Field(
         alias="ottParams",
-        default=OTTParams.parse_obj(OTT_DEFAULT_DICT),
+        default=OTTParams.parse_obj(ssd.OTT_DEFAULT_DICT),
     )
     rate_limits: Optional[RateLimits] = Field(
         alias="rateLimits",
-        default=RateLimits.parse_obj(RATE_LIMITS_DEFAULT_DICT),
+        default=RateLimits.parse_obj(ssd.RATE_LIMITS_DEFAULT_DICT),
     )
     union_audit: Optional[UnionAudit] = Field(
         alias="unionAudit",
-        default = UnionAudit.parse_obj(UNION_AUDIT_DEFAULT_DICT)
+        default = UnionAudit.parse_obj(ssd.UNION_AUDIT_DEFAULT_DICT)
     )
     dynatrace: Optional[Dynatrace] = Field(
-        default=Dynatrace.parse_obj(DEFAULT_DYNATRACE_DICT),
+        default=Dynatrace.parse_obj(ssd.DEFAULT_DYNATRACE_DICT),
     )
     db_migration: Optional[DBMigration] = Field(
         alias="dbMigration",
-        default=DBMigration.parse_obj(DB_MIGRATION_DEFAULT_DICT),
+        default=DBMigration.parse_obj(ssd.DB_MIGRATION_DEFAULT_DICT),
     )
     app: Optional[AppPropertiesServiceGo] = Field(
-        default=AppPropertiesServiceGo.parse_obj(APP_DEFAULT_DICT),
+        default=AppPropertiesServiceGo.parse_obj(ssd.APP_DEFAULT_DICT),
     )
     egress: Optional[ContainersPropertiesServiceGo] = Field(
-        default=ContainersPropertiesServiceGo.parse_obj(EGRESS_DEFAULT_DICT),
+        default=ContainersPropertiesServiceGo.parse_obj(ssd.EGRESS_DEFAULT_DICT),
     )
     ingress: Optional[ContainersPropertiesServiceGo] = Field(
-        default=ContainersPropertiesServiceGo.parse_obj(INGRESS_DEFAULT_DICT)
+        default=ContainersPropertiesServiceGo.parse_obj(ssd.INGRESS_DEFAULT_DICT)
     )
 
 class ServiceSettingsSchema(BaseModel):
     app: Optional[AppPropertiesServiceGo] = Field(
         alias="app",
-        description=APP_DESCRIPTION,
-        markdownDescription=APP_MARKDOWN,
-        default=AppPropertiesServiceGo.parse_obj(APP_DEFAULT_DICT),
+        description=ssd.APP_DESCRIPTION,
+        markdownDescription=ssd.APP_MARKDOWN,
+        default=AppPropertiesServiceGo.parse_obj(ssd.APP_DEFAULT_DICT),
     )
     ingress: Optional[ContainersPropertiesServiceGo] = Field(
         alias="ingress",
-        description=INGRESS_DESCRIPTION,
-        markdownDescription=INGRESS_MARKDOWN,
-        default=ContainersPropertiesServiceGo.parse_obj(INGRESS_DEFAULT_DICT),
+        description=ssd.INGRESS_DESCRIPTION,
+        markdownDescription=ssd.INGRESS_MARKDOWN,
+        default=ContainersPropertiesServiceGo.parse_obj(ssd.INGRESS_DEFAULT_DICT),
     )
     egress: Optional[ContainersPropertiesServiceGo] = Field(
         alias="egress",
-        description=EGRESS_DESCRIPTION,
-        markdownDescription=EGRESS_MARKDOWN,
-        default=ContainersPropertiesServiceGo.parse_obj(EGRESS_DEFAULT_DICT),
+        description=ssd.EGRESS_DESCRIPTION,
+        markdownDescription=ssd.EGRESS_MARKDOWN,
+        default=ContainersPropertiesServiceGo.parse_obj(ssd.EGRESS_DEFAULT_DICT),
     )
     db_migration: Optional[DBMigration] = Field(
         alias="dbMigration",
-        description=DB_MIGRATION_DESCRIPTION,
-        markdownDescription=DB_MIGRATION_MARKDOWN,
-        default=DBMigration.parse_obj(DB_MIGRATION_DEFAULT_DICT),
+        description=ssd.DB_MIGRATION_DESCRIPTION,
+        markdownDescription=ssd.DB_MIGRATION_MARKDOWN,
+        default=DBMigration.parse_obj(ssd.DB_MIGRATION_DEFAULT_DICT),
     )
     ott_params: Optional[OTTParams] = Field(
         alias="ottParams",
-        description=OTT_PARAMS_DESCRIPTION,
-        markdownDescription=OTT_PARAMS_MARKDOWN,
-        default=OTTParams.parse_obj(OTT_DEFAULT_DICT),
+        description=ssd.OTT_PARAMS_DESCRIPTION,
+        markdownDescription=ssd.OTT_PARAMS_MARKDOWN,
+        default=OTTParams.parse_obj(ssd.OTT_DEFAULT_DICT),
     )
     fluentbit: Optional[Fluentbit] = Field(
         alias="fluentbit",
-        description=FLUENTBIT_DESCRIPTION,
-        markdownDescription=FLUENTBIT_MARKDOWN,
-        default=Fluentbit.parse_obj(FLUENTBIT_DEFAULT_DICT),
+        description=ssd.FLUENTBIT_DESCRIPTION,
+        markdownDescription=ssd.FLUENTBIT_MARKDOWN,
+        default=Fluentbit.parse_obj(ssd.FLUENTBIT_DEFAULT_DICT),
     )
     dynatrace: Optional[Dynatrace] = Field(
         alias="dynatrace",
-        description=DYNATRACE_DESCRIPTION,
-        markdownDescription=DYNATRACE_MARKDOWN,
-        default=Dynatrace.parse_obj(DEFAULT_DYNATRACE_DICT),
+        description=ssd.DYNATRACE_DESCRIPTION,
+        markdownDescription=ssd.DYNATRACE_MARKDOWN,
+        default=Dynatrace.parse_obj(ssd.DEFAULT_DYNATRACE_DICT),
     )
     rate_limits: Optional[RateLimits] = Field(
         alias="rateLimits",
-        description=RATE_LIMITS_DESCRIPTION,
-        markdownDescription=RATE_LIMITS_MARKDOWN,
-        default=RateLimits.parse_obj(RATE_LIMITS_DEFAULT_DICT),
+        description=ssd.RATE_LIMITS_DESCRIPTION,
+        markdownDescription=ssd.RATE_LIMITS_MARKDOWN,
+        default=RateLimits.parse_obj(ssd.RATE_LIMITS_DEFAULT_DICT),
     )
     cn: Optional[CN] = Field(
         alias="cn",
-        description=CN_DESCRIPTION,
-        markdownDescription=CN_MARKDOWN,
-        default=CN.parse_obj(CN_DEFAULT_DICT),
+        description=ssd.CN_DESCRIPTION,
+        markdownDescription=ssd.CN_MARKDOWN,
+        default=CN.parse_obj(ssd.CN_DEFAULT_DICT),
     )
     unimon: Optional[Unimon] = Field(
         alias="unimon",
-        description=UNIMON_DESCRIPTION,
-        markdownDescription=UNIMON_MARKDOWN,
-        default=Unimon.parse_obj(UNIMON_DEFAULT_DICT)
+        description=ssd.UNIMON_DESCRIPTION,
+        markdownDescription=ssd.UNIMON_MARKDOWN,
+        default=Unimon.parse_obj(ssd.UNIMON_DEFAULT_DICT)
     )
     ufs_params: Optional[SidecarSettings] = Field(
         alias="ufsParams",
-        description=UFS_PARAMS_DESCRIPTION,
-        markdownDescription=UFS_PARAMS_MARKDOWN,
+        description=ssd.UFS_PARAMS_DESCRIPTION,
+        markdownDescription=ssd.UFS_PARAMS_MARKDOWN,
     )
     ufs_session: Optional[SidecarSettings] = Field(
         alias="ufsSession",
-        description=UFS_SESSION_DESCRIPTION,
-        markdownDescription=UFS_SESSION_MARKDOWN,
+        description=ssd.UFS_SESSION_DESCRIPTION,
+        markdownDescription=ssd.UFS_SESSION_MARKDOWN,
     )
     union_audit: Optional[UnionAudit] = Field(
         alias="unionAudit",
-        description=UNION_AUDIT_DESCRIPTION,
-        markdownDescription=UNION_AUDIT_MARKDOWN,
-        default=UnionAudit.parse_obj(UNION_AUDIT_DEFAULT_DICT),
+        description=ssd.UNION_AUDIT_DESCRIPTION,
+        markdownDescription=ssd.UNION_AUDIT_MARKDOWN,
+        default=UnionAudit.parse_obj(ssd.UNION_AUDIT_DEFAULT_DICT),
     )
 
 class UpsertSettingsResponse(BaseModel):
@@ -791,4 +746,3 @@ class ServicesWithRole(BaseModel):
     services: List[ServiceWithRole]
     limit: int
     offset: int
-мне нужно добавить описания к полям
