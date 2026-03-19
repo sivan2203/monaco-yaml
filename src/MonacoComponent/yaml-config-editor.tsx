@@ -175,10 +175,14 @@ export function YamlConfigEditor({
     [problems, backendProblems, saveBackendProblems],
   );
 
+  const hasValidationErrors = problems.some((p) => p.severity === "error");
+  const canSave = isDirty && !hasValidationErrors;
+
   /**
    * Готовит полный YAML и открывает diff перед подтверждением сохранения.
    */
   function handleSave() {
+    if (!canSave) return;
     setDiffYaml(getFullYaml());
     setIsDiffOpen(true);
   }
@@ -298,7 +302,7 @@ export function YamlConfigEditor({
             Отменить
           </button>
         )}
-        <button className="yce-btn-save" onClick={handleSave}>
+        <button className="yce-btn-save" onClick={handleSave} disabled={!canSave}>
           Сохранить
         </button>
       </div>
